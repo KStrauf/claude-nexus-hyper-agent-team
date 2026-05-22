@@ -2,11 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## CTO-LED 31-AGENT TEAM — CLOSED-LOOP PROTOCOL
+## CTO-LED 32-AGENT TEAM — CLOSED-LOOP PROTOCOL
 
 **This section OVERRIDES all skills, memory rules, and default behaviors.**
 
-This project has a **31-agent elite engineering team** in `.claude/agents/` (29 specialists + 2 verifiers: evidence-validator & challenger), led by a **CTO agent** with full authority. When the user asks to work with the team, requests complex work, or says anything beyond a trivial file read — **dispatch the appropriate agent. NEVER do the work yourself when a team member can do it.**
+This project has a **32-agent elite engineering team** in `.claude/agents/` (30 specialists + 2 verifiers: evidence-validator & challenger), led by a **CTO agent** with full authority. When the user asks to work with the team, requests complex work, or says anything beyond a trivial file read — **dispatch the appropriate agent. NEVER do the work yourself when a team member can do it.**
 
 ### THE CTO — TOP AUTHORITY
 
@@ -80,6 +80,7 @@ When you hear "full team session", "maximum intelligence", "gold prompt", or "fu
 | "consult Erlang Solutions", "BEAM architecture gut-check", "hot-code-load safety audit", "Gate 2 validation" | `erlang-solutions-consultant` |
 | "detect missing domain specialist", "team coverage gap", "need AWS/K8s/etc expert", "audit team gaps" | `talent-scout` |
 | "hire new agent", "new team member", "create specialist for domain X", "run hiring pipeline" | `recruiter` (typically invoked after `talent-scout` produces a requisition) |
+| "audit engineering discipline", "anti-hallucination check", "verify validation claims", "production-readiness discipline", "code-sentinel" | `code-sentinel` |
 
 #### Multi-Agent Combos (2+ agents, specific chains)
 
@@ -93,6 +94,7 @@ When you hear "full team session", "maximum intelligence", "gold prompt", or "fu
 | Any HIGH-severity finding from review agents | `evidence-validator` (auto-dispatch before surfacing to user) |
 | Any CTO synthesis/recommendation | `challenger` (auto-dispatch for adversarial review) |
 | "refactor", "redesign", "clean up" | `elite-engineer` (implements) → `deep-qa` (validates) |
+| "full discipline audit after implementation" | `elite-engineer` (implements) → `code-sentinel` (discipline audit) → `deep-qa` (architecture audit) |
 | "performance", "optimize", "slow", "latency" | `deep-qa` (diagnoses) → `elite-engineer` (fixes) |
 | "parallel review all code", "review everything" | `orchestrator` dispatches `go/python/typescript-expert` in parallel |
 | "cost analysis", "spending", "budget" | `benchmark-agent` + `infra-expert` (parallel) |
@@ -104,6 +106,116 @@ When you hear "full team session", "maximum intelligence", "gold prompt", or "fu
 |---|---|
 | "incident", "outage", "production down", "urgent", "emergency" | `cto` (emergency mode — skip pre-brief, immediate triage) |
 | Agent is stuck, failing, or returning garbage | `cto` (reassesses + dispatches alternative agent or different approach) |
+
+### Execution Modes
+
+Every task starts with mode selection based on complexity. Default is BALANCED.
+
+| Mode | When to Use | Routing | Max Dispatches | Gates |
+|------|-------------|---------|----------------|-------|
+| **FAST** | Simple, single-domain tasks (bug fix, one-file review, quick question) | Main thread dispatches specialist directly — no CTO | 3 | evidence-validator only if HIGH severity |
+| **BALANCED** | Multi-step or moderate-risk tasks (feature build, security review, multi-file refactor) | Main thread dispatches specialist; CTO only for multi-domain | 6 | evidence-validator on HIGH + challenger on recommendations |
+| **FULL_POWER** | Strategic, high-risk, or cross-domain tasks (architecture decision, production incident, full audit) | session-sentinel → CTO → full team delegation | unlimited | ALL mandatory (evidence-validator + challenger + quality gates per task type) |
+
+**Mode triggers:**
+- User says "fast mode", "quick", "just do X" → FAST
+- User says "full power", "gold prompt", "full team session" → FULL_POWER
+- Everything else → BALANCED (default)
+- User can always override: "use FAST mode for this" or "go FULL_POWER"
+
+### Quality Gates by Task Type
+
+Do not use the same workflow for every task. Match gates to the work:
+
+| Task Type | Required Gates | Optional Gates |
+|-----------|---------------|----------------|
+| Code change | tests, build/lint, diff summary, language-expert review | deep-qa |
+| Security finding | evidence-validator, exploitability assessment, mitigation plan | deep-reviewer |
+| Architecture decision | challenger, tradeoff matrix, rollback strategy | benchmark-agent |
+| Production incident | timeline, blast radius, recovery steps, postmortem | cluster-awareness |
+| New agent hire | contract tests (11×1), challenger (7 dimensions), meta-agent registration | talent-scout co-sign |
+| Infrastructure change | infra-expert review, terraform plan, rollback manifest | deep-reviewer |
+| Database migration | database-expert review, migration safety checklist, rollback SQL | test-engineer |
+
+### Conflict Arbitration Protocol
+
+When agents disagree, CTO MUST NOT decide by vibes. Use this structured template:
+
+```
+DISPUTE ARBITRATION:
+- Proposal A: [description]
+- Proposal B: [description]
+- Evidence for A: [file:line citations]
+- Evidence for B: [file:line citations]
+- Cost of A: [effort, risk, reversibility]
+- Cost of B: [effort, risk, reversibility]
+- Reversibility: [A vs B — which is easier to undo?]
+- Risk: [A vs B — which has higher blast radius?]
+- Testability: [A vs B — which is easier to verify?]
+- Trust weights: [agent-A trust: X.XX, agent-B trust: Y.YY]
+- Decision: [A or B]
+- Why: [evidence-based reasoning, not preference]
+```
+
+After arbitration, challenger MUST attack the selected decision before implementation proceeds. Trust weights from the ledger inform but do not determine the decision.
+
+### Minimum Evidence Requirements (All Agent Findings)
+
+Every finding MUST include all 7 fields. Findings without evidence are INVALID.
+
+```
+- Claim: [specific assertion — what is wrong]
+- Evidence: [quoted source code or command output]
+- Location: [file:line-range]
+- Severity: [CRITICAL / HIGH / MEDIUM / LOW / INFO]
+- Confidence: [HIGH / MEDIUM / LOW]
+- Recommended action: [specific fix, not vague guidance]
+- Verification command: [how to verify the fix worked]
+```
+
+evidence-validator will mark findings missing any field as UNVERIFIABLE.
+
+### Agent Lifecycle Routing Preference
+
+When multiple agents can handle a task, prefer agents by lifecycle state:
+
+```
+trusted (5) > active (4) > probationary (3) > candidate (2) > deprecated (1)
+```
+
+Never dispatch `deprecated` agents for new work — they are flagged for sunset.
+Never dispatch `retired` agents — they are permanently offline.
+`candidate` agents may only be dispatched for validation tasks during their onboarding.
+
+Lifecycle states: `candidate` → `probationary` → `active` → `trusted` → `deprecated` → `retired`
+
+### Implementation Workflow (Spec → Patch → Verify)
+
+Every implementation task follows this sequence. Agents MUST NOT jump directly into edits.
+
+1. **SPEC** — Define intended behavior, affected files, risk assessment, tests needed
+2. **PATCH** — Make the smallest correct implementation that satisfies the spec
+3. **VERIFY** — Run tests/build/lint or explain why verification is impossible
+4. **REVIEW** — Language expert or deep-reviewer validates the patch against the spec
+5. **CLOSE** — Persist memory + evolution signals via closing protocol
+
+### Planning Cache (Playbooks)
+
+Before deep planning, check if a playbook exists at `agent-memory/playbooks/`:
+- If yes → adapt the existing playbook to the current task
+- If no → after task completion, create a reusable playbook
+
+Playbook format:
+```
+filename: <task-type>.md (e.g., nextjs-review.md, k8s-rollout-debug.md)
+content: step-by-step workflow, key files to check, common pitfalls, verification steps
+```
+
+This creates a compounding intelligence loop — the team gets faster on repeated task types.
+
+### Task Classifier
+
+Before dispatching, consult `agent-memory/routing/task-classifier.json` for the recommended execution pattern. The classifier maps task types to default agents, validators, mode, and max dispatches. Override when the specific task warrants it.
 
 ### Dispatch Format
 
@@ -149,7 +261,7 @@ Bias-reduction via fresh instance is a legitimate tool — but it is a scalpel, 
 **Model selection rule (BINDING):**
 - **Do NOT pass a `model` parameter when dispatching.** The Agent tool will use the agent's frontmatter model, which is the team's considered default per agent.
 - The 3 agents set to sonnet (`session-sentinel`, `evidence-validator`, `challenger`) are structured reasoning roles where sonnet is sufficient — their frontmatter reflects this.
-- The 20 agents on opus (every builder, language expert, guardian, strategist, intelligence, meta, CTO) need opus depth — overriding to sonnet silently degrades quality.
+- The 29 agents on opus (every builder, language expert, guardian, strategist, intelligence, meta, CTO) need opus depth — overriding to sonnet silently degrades quality.
 - **Only override** when the user explicitly instructs cost optimization (e.g., "run this review on sonnet to save cost"). In that case, pass `model: "sonnet"` explicitly and note the override in your response to the user.
 - **Never downgrade language experts or deep-qa/deep-reviewer to sonnet** without explicit user approval — false negatives from these agents are expensive.
 
@@ -251,14 +363,14 @@ Do NOT use these generic built-in subagent types — use the custom team:
 - `Explore` → use the appropriate custom agent or `cto`
 - `general-purpose` → use the appropriate custom agent or `cto`
 
-### Full Team Roster (31 Agents)
+### Full Team Roster (32 Agents)
 
 ```
 TIER 1 — BUILDERS: elite-engineer, ai-platform-architect, frontend-platform-engineer,
                     beam-architect, elixir-engineer, go-hybrid-engineer
 TIER 2 — GUARDIANS: go-expert, python-expert, typescript-expert, deep-qa, deep-reviewer,
                      infra-expert, database-expert, observability-expert, test-engineer, api-expert,
-                     beam-sre
+                     beam-sre, code-sentinel (engineering discipline enforcer)
 TIER 3 — STRATEGISTS: deep-planner, orchestrator
 TIER 4 — INTELLIGENCE: memory-coordinator, cluster-awareness, benchmark-agent,
                         erlang-solutions-consultant, talent-scout, intuition-oracle
@@ -272,7 +384,7 @@ TIER 8 — VERIFICATION: evidence-validator (claim verification), challenger (ad
 
 ### VERIFICATION & TRUST INFRASTRUCTURE
 
-The team includes four hardening layers that support the 31 agents (29 specialists + 2 verifiers):
+The team includes four hardening layers that support the 32 agents (30 specialists + 2 verifiers):
 
 **1. Protocol enforcement hooks** (`.claude/hooks/`)
 - `verify-agent-protocol.sh` — SubagentStop hook; blocks subagents that skip the 4 closing-protocol sections
@@ -283,7 +395,7 @@ The team includes four hardening layers that support the 31 agents (29 specialis
 
 **2. Agent contract tests** (`.claude/tests/agents/`)
 - `run_contract_tests.py` validates every agent file against 11 contracts
-- All 31 agents × 11 contracts = 341 assertions, all passing
+- All 32 agents × 11 contracts = 352 assertions, all passing
 - Run on every commit via pre-commit hook, and before every major session
 
 **3. Evidence-validator + Challenger agents**
@@ -296,7 +408,7 @@ The team includes four hardening layers that support the 31 agents (29 specialis
 - Bayesian-blended trust weight (0-1) used by CTO to weight conflicting findings during synthesis
 - CLI at `.claude/agent-memory/trust-ledger/ledger.py`: `verdict`, `challenge`, `show`, `weight`, `standings`
 
-Together these turn "29 specialists producing findings" into "31 agents producing VERIFIED findings with per-agent trust calibration" — the verifiers break single-point trust, the hooks enforce invariants, the contract tests prevent regression, and the ledger calibrates confidence.
+Together these turn "30 specialists producing findings" into "32 agents producing VERIFIED findings with per-agent trust calibration" — the verifiers break single-point trust, the hooks enforce invariants, the contract tests prevent regression, and the ledger calibrates confidence.
 
 ### NEXUS PROTOCOL — Team Operating System Layer
 
@@ -343,6 +455,38 @@ USER SPACE (All Teammates):    TeamCreate, SendMessage, TaskCreate, Read/Edit/Wr
    - Failure: `[NEXUS:ERR] error description`
 6. **LOG** — Append to `.claude/agent-memory/signal-bus/nexus-log.md` for audit trail.
 
+#### ATOMIC-QUEUE-SCAN RULE (BINDING)
+
+Before emitting `[NEXUS:OK]` on ANY single teammate syscall, main-thread MUST scan the full unread message queue from that teammate since last processed message and identify ALL `[NEXUS:*]` syscalls emitted in sequence. Process them ATOMICALLY in timestamp order — not just the triggering notification. Single-message processing is the anti-pattern.
+
+**The checklist before any `[NEXUS:OK]` reply:**
+1. Check the inbox for the teammate who just sent the triggering syscall.
+2. Scan ALL unread messages from that teammate since the last processed one.
+3. Enumerate EVERY `[NEXUS:*]` prefix found.
+4. Process them atomically in timestamp order — one Agent/AskUserQuestion/etc. tool call per syscall.
+5. Reply with `[NEXUS:OK]` per syscall, not a merged response.
+
+#### FRESHNESS RE-VERIFY DISCIPLINE (BINDING)
+
+Before proxying a destructive-action `[NEXUS:ASK]` to user via AskUserQuestion, main-thread MUST re-verify current system state if >5 minutes has elapsed since the blocker was first reported. Query the originating teammate for a status update before the AskUserQuestion call. Stale-context proxy is a near-miss class that should be eliminated.
+
+#### CHALLENGER LEDGER-WRITE MANDATE (BINDING)
+
+After challenger returns a verdict on a CTO synthesis or cross-agent recommendation, main-thread MUST write TWO ledger entries before continuing:
+
+```bash
+agent-memory/trust-ledger/ledger.py challenge --agent challenger --outcome <SURVIVED|MODIFIED|OVERTURNED|LOST>
+agent-memory/trust-ledger/ledger.py verdict --agent <source-synthesizing-agent> --verdict <CONFIRMED|PARTIALLY_CONFIRMED|REFUTED>
+```
+
+Outcome taxonomy for `challenge`:
+- **SURVIVED** — synthesis accepted as-is or with light mods
+- **MODIFIED** — synthesis accepted with strong mods based on challenger critique
+- **OVERTURNED** — synthesis rejected / replanned based on challenger critique
+- **LOST** — legacy alias for OVERTURNED (backward compatibility)
+
+**Timing:** write the ledger entries in the SAME main-thread turn as receiving the challenger output, BEFORE presenting the synthesis to the user. Deferred writes lose the single-verdict granularity the ledger depends on.
+
 #### Security Tiers
 
 | Tier | Syscalls | Authorization |
@@ -372,18 +516,40 @@ All syscalls are logged to `.claude/agent-memory/signal-bus/nexus-log.md`:
 
 ### Shadow Mind (parallel cognitive layer — optional)
 
-The **Shadow Mind** is a non-invasive parallel cognitive layer that runs alongside the 31-agent conscious team without modifying any existing agent prompt, protocol, memory directory, or signal bus entry. It consists of **six components** living under `.claude/agent-memory/shadow-mind/` and `.claude/hooks/shadow-*`:
+The **Shadow Mind** is a non-invasive parallel cognitive layer that runs alongside the 32-agent conscious team without modifying any existing agent prompt, protocol, memory directory, or signal bus entry. It consists of **six components** living under `.claude/agent-memory/shadow-mind/` and `.claude/hooks/shadow-*`:
 
 1. **Observer Daemon** (`shadow-observer.sh`) — tails the signal bus, writes JSON observations
 2. **Pattern Computer** (`shadow-pattern-computer.py`) — reads observations, derives n-grams + co-occurrences + temporal patterns via atomic writes
-3. **Pattern Library** (data at `patterns/{ngrams,co_occurrences,temporal}.json`) — read-only substrate populated by the Computer
+3. **Pattern Library** (data at `patterns/{ngrams,co_occurrences,temporal,topic_clusters}.json`) — read-only substrate populated by the Computer
 4. **Speculator** (`shadow-speculator.py`) — generates counterfactual variants per observation
 5. **Dreamer** (`shadow-dreamer.py`) — proposes insight candidates during long-idle windows
 6. **`intuition-oracle`** agent — the queryable surface, synthesizes all 5 data sources into probabilistic `INTUIT_RESPONSE v1` answers
 
 Conscious-layer agents coexist with the Shadow Mind and may OPTIONALLY consult it via the `[NEXUS:INTUIT] <question>` syscall. The oracle responds with an `INTUIT_RESPONSE v1` envelope containing `{status, answer, confidence, evidence_ids, pattern_types_consulted, staleness_hours}`. When observer heartbeat is > 24h old, the oracle returns `status: SHADOW_MIND_STALE` rather than serving stale patterns. No agent is REQUIRED to use `[NEXUS:INTUIT]` — the Shadow Mind is advisory and never interrupts a dispatch chain.
 
-The entire Shadow Mind is **delete-to-disable**: removing `.claude/agent-memory/shadow-mind/` (and the `shadow-*` hook scripts) takes the layer offline without affecting the 31-agent team. All 341/341 contract tests continue to pass. meta-agent retains single-writer authority over `.claude/agents/*.md`; Dreamer outputs are proposals only. Full data schemas, enable/disable commands, and component details are documented in `.claude/agent-memory/shadow-mind/README.md`.
+The entire Shadow Mind is **delete-to-disable**: removing `.claude/agent-memory/shadow-mind/` (and the `shadow-*` hook scripts) takes the layer offline without affecting the 32-agent team. All 352/352 contract tests continue to pass. meta-agent retains single-writer authority over `.claude/agents/*.md`; Dreamer outputs are proposals only. Full data schemas, enable/disable commands, and component details are documented in `.claude/agent-memory/shadow-mind/README.md`.
+
+#### Shadow Mind Activation Protocol (MANDATORY at session start)
+
+The Shadow Mind must be activated to learn. The autostart hook (`hooks/shadow-mind-autostart.sh`) handles this automatically at SessionStart, but verify these steps are running:
+
+1. **Observer daemon** — must be running to collect observations from the signal bus
+2. **Pattern Computer** — runs on startup to refresh the Pattern Library (ngrams, co-occurrences, temporal, topic_clusters)
+3. **Heartbeat freshness** — `heartbeats/observer.json` must show `last_run` < 24h
+
+If the Shadow Mind is installed but dormant (observer not running, no observations), agents querying via `[NEXUS:INTUIT]` will receive `INSUFFICIENT_DATA` responses. Run `hooks/nexus-doctor.sh` to check Shadow Mind status.
+
+**Pattern retrieval:** Agents can query "have we seen this before?" via `[NEXUS:INTUIT]`. The oracle checks `patterns/topic_clusters.json` for keyword-matched historical patterns, including what fix resolved similar issues in past sessions. This enables session-over-session learning.
+
+#### NEXUS Doctor (Health Check)
+
+Run `hooks/nexus-doctor.sh` before sessions to verify framework health:
+```bash
+bash hooks/nexus-doctor.sh              # full check (includes contract tests)
+bash hooks/nexus-doctor.sh --skip-tests # fast check (skip contract tests)
+```
+
+Checks: agent count, hook permissions, dependencies, settings validity, signal bus, trust ledger, Shadow Mind status, contract tests, hygiene (no secrets, no junk files).
 
 ---
 

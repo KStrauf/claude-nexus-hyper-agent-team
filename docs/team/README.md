@@ -6,7 +6,7 @@
 
 ## What Is This?
 
-The 31-agent team is a layered agent operating system built on Claude Code, designed for complex engineering work across Go (<go-service>), Python (<python-service>), TypeScript (<frontend>), BEAM/Elixir (<beam-service>), and GCP infrastructure. The team is led by a CTO agent with full authority, supported by 28 specialist agents + 2 verification agents (evidence-validator, challenger) + 1 optional intuition-oracle (Shadow Mind surface) organized into 8 tiers, and hardened by protocol-enforcement hooks, a 341-assertion contract test suite, and a data-driven trust ledger.
+The 32-agent team is a layered agent operating system built on Claude Code, designed for complex engineering work across Go (<go-service>), Python (<python-service>), TypeScript (<frontend>), BEAM/Elixir (<beam-service>), and GCP infrastructure. The team is led by a CTO agent with full authority, supported by 28 specialist agents + 2 verification agents (evidence-validator, challenger) + 1 optional intuition-oracle (Shadow Mind surface) organized into 8 tiers, and hardened by protocol-enforcement hooks, a 352-assertion contract test suite, and a data-driven trust ledger.
 
 The team's defining innovations are:
 - The **NEXUS Protocol** — a syscall interface that bridges the Claude Code privilege boundary, letting subagents request privileged main-thread operations without directly possessing those tools
@@ -20,7 +20,7 @@ The team's defining innovations are:
 ### 📘 [TEAM_OVERVIEW.md](TEAM_OVERVIEW.md)
 **Start here if you're new.** Comprehensive architecture reference covering:
 - Layered OS architecture
-- All 31 agents (29 specialists + 2 verifiers) with roles
+- All 32 agents (30 specialists + 2 verifiers) with roles
 - NEXUS Protocol deep dive
 - Signal bus system
 - Pattern F (end-session learning)
@@ -100,9 +100,9 @@ Each includes: situation, agent chain, exact prompts, expected output, variation
 ## Related Project-Root Files
 
 - `../../CLAUDE.md` — The operational protocol the main thread follows. Read this too.
-- `../../.claude/agents/*.md` — The 31 agent prompts. Read individual agents when deep-diving.
+- `../../.claude/agents/*.md` — The 32 agent prompts. Read individual agents when deep-diving.
 - `../../.claude/hooks/*.sh` — Protocol enforcement hooks (auto-run by Claude Code).
-- `../../.claude/tests/agents/` — Contract test suite (341 assertions across 31 agents).
+- `../../.claude/tests/agents/` — Contract test suite (352 assertions across 32 agents).
 - `../../.claude/agent-memory/trust-ledger/` — Per-agent trust scorecard.
 - `../../.claude/agent-memory/signal-bus/*.md` — Live signal bus (check before/after sessions).
 - `../../.claude/agent-memory/shadow-mind/` — Shadow Mind data (observations, patterns, speculations, dreams) — optional, delete-to-disable.
@@ -144,4 +144,4 @@ This documentation is maintained by the team itself. When you discover new patte
 
 ---
 
-*Last updated: 2026-04-18. Team v3.0 with NEXUS protocol, dynamic hiring pipeline, and Shadow Mind cognitive layer.*
+*Last updated: 2026-05-22. Team v3.2 — 32 agents, execution modes, 6-state lifecycle, quality gates, nexus-doctor, topic clusters.*

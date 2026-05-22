@@ -8,7 +8,7 @@ Disable via: CronDelete. Runs ONLY during long-idle windows
 active sessions. Write-only to ``shadow-mind/dreams/<YYYY-MM-DD>-<slug>.yaml``
 — never applies an evolution; only proposes candidates for meta-agent review.
 
-Delete-to-disable: removing this file does not affect the 30-agent
+Delete-to-disable: removing this file does not affect the 32-agent
 conscious layer. All dream outputs are advisory. meta-agent retains
 single-writer authority over ``.claude/agents/*.md``.
 """

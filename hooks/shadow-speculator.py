@@ -11,7 +11,7 @@ Reads the last N observations (default 10) from
 observation. Each variant is a structured JSON record that meta-agent and
 intuition-oracle can consult, but no action is ever taken. The whole
 component is delete-to-disable — remove this file or stop scheduling it and
-the 30-agent conscious layer continues unaffected.
+the 32-agent conscious layer continues unaffected.
 
 Runtime budget: < 30s per invocation.
 """

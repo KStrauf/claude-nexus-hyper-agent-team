@@ -76,6 +76,7 @@ CUSTOM_AGENTS = {
     "talent-scout", "recruiter",
     "evidence-validator", "challenger",
     "intuition-oracle",
+    "code-sentinel",
 }
 
 

@@ -3,14 +3,17 @@
 Shadow Pattern Computer — derives Pattern Library from observations.
 
 Reads `.claude/agent-memory/shadow-mind/observations/*.jsonl` (populated by
-the Observer Daemon) and computes three pattern artifacts consumed by the
+the Observer Daemon) and computes four pattern artifacts consumed by the
 intuition-oracle agent:
 
-  1. patterns/ngrams.json         — P(next_agent | current_agent) transition
-                                    probabilities per session
-  2. patterns/co_occurrences.json — agent↔agent and signal_type↔signal_type
-                                    co-occurrence matrices within same session
-  3. patterns/temporal.json       — hour-of-day and day-of-week signal density
+  1. patterns/ngrams.json          — P(next_agent | current_agent) transition
+                                     probabilities per session
+  2. patterns/co_occurrences.json  — agent↔agent and signal_type↔signal_type
+                                     co-occurrence matrices within same session
+  3. patterns/temporal.json        — hour-of-day and day-of-week signal density
+  4. patterns/topic_clusters.json  — keyword-based observation clusters enabling
+                                     "have we seen this failure/pattern before?"
+                                     queries with resolution tracking
 
 INVOCATION:
   Run on-demand:      python3 shadow-pattern-computer.py
@@ -18,7 +21,7 @@ INVOCATION:
   Dry-run (no write): python3 shadow-pattern-computer.py --dry-run
 
 DISABLE:
-  Any of these turn the computer off without affecting the 30-agent team:
+  Any of these turn the computer off without affecting the 32-agent team:
     * Delete this file
     * Delete .claude/agent-memory/shadow-mind/ (full layer removal)
     * CronDelete the scheduled invocation
@@ -35,6 +38,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import tempfile
 import time
@@ -58,6 +62,28 @@ HEARTBEATS_DIR = SHADOW_ROOT / "heartbeats"
 MIN_NGRAM_COUNT = 2       # require at least 2 observed transitions
 MIN_COOCC_COUNT = 2       # require at least 2 co-occurrences
 MIN_TEMPORAL_COUNT = 3    # require at least 3 observations in same bucket
+MIN_CLUSTER_SIZE = 2      # require at least 2 observations to form a cluster
+
+# Stopwords — common English words that don't carry signal for clustering
+STOPWORDS = {
+    "the", "a", "an", "is", "was", "are", "were", "be", "been", "being",
+    "have", "has", "had", "do", "does", "did", "will", "would", "could",
+    "should", "may", "might", "shall", "can", "to", "of", "in", "for",
+    "on", "with", "at", "by", "from", "as", "into", "through", "during",
+    "before", "after", "above", "below", "between", "under", "again",
+    "further", "then", "once", "here", "there", "when", "where", "why",
+    "how", "all", "both", "each", "few", "more", "most", "other", "some",
+    "such", "no", "nor", "not", "only", "own", "same", "so", "than",
+    "too", "very", "just", "about", "also", "and", "but", "or", "if",
+    "this", "that", "these", "those", "it", "its", "i", "we", "they",
+    "them", "their", "what", "which", "who", "whom",
+}
+
+# Resolution markers — observations containing these indicate a successful fix
+RESOLUTION_MARKERS = {
+    "resolved", "fixed", "shipped", "merged", "deployed",
+    "confirmed", "remediated", "patched", "closed",
+}
 
 
 def log_err(msg: str) -> None:
@@ -247,6 +273,158 @@ def compute_temporal(records: list[dict]) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Topic cluster computation
+# ---------------------------------------------------------------------------
+def _extract_keywords(text: str, top_n: int = 5) -> list[str]:
+    """
+    Simple TF-IDF-like keyword extraction: split on non-alphanumeric,
+    lowercase, filter stopwords and short words (<3 chars), return top N
+    by frequency within the text.
+    """
+    words = re.split(r"[^a-zA-Z0-9]+", text.lower())
+    words = [w for w in words if len(w) >= 3 and w not in STOPWORDS]
+    counts = Counter(words)
+    return [w for w, _ in counts.most_common(top_n)]
+
+
+def _has_resolution(content: str) -> bool:
+    """Check whether content contains any resolution marker."""
+    lower = content.lower()
+    return any(marker in lower for marker in RESOLUTION_MARKERS)
+
+
+def compute_topic_clusters(records: list[dict]) -> dict:
+    """
+    Group observations by content keywords to enable "have we seen this
+    failure/pattern before?" queries with resolution tracking.
+
+    Observations sharing >=2 keywords are grouped into clusters. Each cluster
+    tracks trigger keywords, resolution content (if any), confidence scaled
+    by cluster size, and source sessions.
+
+    Returns:
+        {
+          "version": 1,
+          "computed_at": "<iso>",
+          "sample_size": N,
+          "min_cluster_size": 2,
+          "clusters": [
+            {
+              "cluster_id": "c-001",
+              "pattern": "streaming channel mismatch",
+              "trigger": ["streaming", "channel", "mismatch"],
+              "successful_fix": "...",
+              "confidence": 0.85,
+              "source_sessions": ["session-1"],
+              "observation_count": 5,
+              "first_seen": "<iso>",
+              "last_seen": "<iso>"
+            }
+          ]
+        }
+    """
+    # Step 1: extract keywords per observation (only those with content)
+    obs_keywords: list[tuple[int, set[str]]] = []
+    for idx, rec in enumerate(records):
+        content = rec.get("content", "")
+        if not content:
+            continue
+        kws = _extract_keywords(content)
+        if kws:
+            obs_keywords.append((idx, set(kws)))
+
+    # Step 2: group observations that share >=2 keywords via union-find
+    # Build adjacency: for each pair sharing >=2 keywords, union them
+    parent: dict[int, int] = {}
+
+    def find(x: int) -> int:
+        while parent.get(x, x) != x:
+            parent[x] = parent.get(parent[x], parent[x])
+            x = parent[x]
+        return x
+
+    def union(a: int, b: int) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    for i in range(len(obs_keywords)):
+        for j in range(i + 1, len(obs_keywords)):
+            idx_i, kws_i = obs_keywords[i]
+            idx_j, kws_j = obs_keywords[j]
+            if len(kws_i & kws_j) >= 2:
+                union(idx_i, idx_j)
+
+    # Step 3: collect clusters
+    cluster_members: dict[int, list[int]] = defaultdict(list)
+    for idx, _ in obs_keywords:
+        root = find(idx)
+        cluster_members[root].append(idx)
+
+    # Step 4: build cluster descriptors
+    clusters: list[dict] = []
+    cluster_num = 0
+    for root, members in sorted(cluster_members.items()):
+        if len(members) < MIN_CLUSTER_SIZE:
+            continue
+
+        cluster_num += 1
+
+        # Gather all keywords across cluster members with frequency
+        all_kws: Counter[str] = Counter()
+        sessions: set[str] = set()
+        timestamps: list[str] = []
+        resolution_content: str | None = None
+
+        for idx in members:
+            rec = records[idx]
+            content = rec.get("content", "")
+            kws = _extract_keywords(content)
+            all_kws.update(kws)
+            sessions.add(rec.get("session", "unknown"))
+            ts = rec.get("ts", "")
+            if ts:
+                timestamps.append(ts)
+            # Track first resolution found
+            if resolution_content is None and _has_resolution(content):
+                resolution_content = content
+
+        # Pattern description: top 3 keywords joined
+        top_kws = [w for w, _ in all_kws.most_common(5)]
+        pattern_desc = " ".join(top_kws[:3])
+
+        # Confidence: scaled 0.3-0.95 based on cluster size
+        # 2 obs → 0.3, scales up; cap at 0.95 for 15+ observations
+        raw_conf = 0.3 + (len(members) - MIN_CLUSTER_SIZE) * 0.05
+        confidence = round(min(raw_conf, 0.95), 2)
+
+        sorted_ts = sorted(timestamps) if timestamps else []
+
+        clusters.append({
+            "cluster_id": f"c-{cluster_num:03d}",
+            "pattern": pattern_desc,
+            "trigger": top_kws,
+            "successful_fix": resolution_content,
+            "confidence": confidence,
+            "source_sessions": sorted(sessions),
+            "observation_count": len(members),
+            "first_seen": sorted_ts[0] if sorted_ts else None,
+            "last_seen": sorted_ts[-1] if sorted_ts else None,
+        })
+
+    # Sort clusters by observation count descending (most evidence first)
+    clusters.sort(key=lambda c: c["observation_count"], reverse=True)
+
+    return {
+        "version": 1,
+        "computed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "sample_size": len(records),
+        "min_cluster_size": MIN_CLUSTER_SIZE,
+        "clusters": clusters,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Atomic writes
 # ---------------------------------------------------------------------------
 def write_atomic(path: Path, data: dict) -> None:
@@ -275,9 +453,10 @@ def update_heartbeat(stats: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Derive Pattern Library (n-grams + co-occurrences + temporal) from "
-            "Shadow Mind observations. Read-only on observations; atomic write "
-            "to patterns/*.json. Runs in <10s for typical observation volumes."
+            "Derive Pattern Library (n-grams + co-occurrences + temporal + "
+            "topic clusters) from Shadow Mind observations. Read-only on "
+            "observations; atomic write to patterns/*.json. Runs in <10s for "
+            "typical observation volumes."
         )
     )
     parser.add_argument(
@@ -302,6 +481,7 @@ def main() -> int:
     ngrams = compute_ngrams(records)
     cooccs = compute_co_occurrences(records)
     temporal = compute_temporal(records)
+    topic_clusters = compute_topic_clusters(records)
 
     stats = {
         "records_processed": len(records),
@@ -317,6 +497,7 @@ def main() -> int:
         )
         // 2,
         "temporal_hours_covered": len(temporal["by_hour_utc"]),
+        "topic_clusters_found": len(topic_clusters["clusters"]),
         "duration_sec": round(time.time() - start, 3),
     }
 
@@ -327,6 +508,7 @@ def main() -> int:
         log_info(f"agent pairs found (threshold {MIN_COOCC_COUNT}+): {stats['agent_pairs_found']}")
         log_info(f"signal-type pairs found: {stats['signal_pairs_found']}")
         log_info(f"temporal hour-buckets: {stats['temporal_hours_covered']}")
+        log_info(f"topic clusters found (threshold {MIN_CLUSTER_SIZE}+): {stats['topic_clusters_found']}")
 
         if args.verbose:
             log_info("")
@@ -354,6 +536,16 @@ def main() -> int:
             for a, b, count in flat_pairs[:5]:
                 log_info(f"  {a} ↔ {b}: {count} session(s)")
 
+            log_info("")
+            log_info("Top 5 topic clusters (by observation count):")
+            for cluster in topic_clusters["clusters"][:5]:
+                fix_label = "yes" if cluster["successful_fix"] else "no"
+                log_info(
+                    f"  {cluster['cluster_id']}: \"{cluster['pattern']}\" "
+                    f"obs={cluster['observation_count']} "
+                    f"conf={cluster['confidence']} fix={fix_label}"
+                )
+
     if args.dry_run:
         log_info("")
         log_info("DRY-RUN — no files written")
@@ -363,12 +555,14 @@ def main() -> int:
     write_atomic(PATTERNS_DIR / "ngrams.json", ngrams)
     write_atomic(PATTERNS_DIR / "co_occurrences.json", cooccs)
     write_atomic(PATTERNS_DIR / "temporal.json", temporal)
+    write_atomic(PATTERNS_DIR / "topic_clusters.json", topic_clusters)
     update_heartbeat(stats)
 
     log_info(
-        f"wrote 3 pattern files ({stats['transitions_found']} transitions, "
+        f"wrote 4 pattern files ({stats['transitions_found']} transitions, "
         f"{stats['agent_pairs_found']} agent pairs, "
-        f"{stats['temporal_hours_covered']} hour buckets) in {stats['duration_sec']}s"
+        f"{stats['temporal_hours_covered']} hour buckets, "
+        f"{stats['topic_clusters_found']} topic clusters) in {stats['duration_sec']}s"
     )
     return 0
 

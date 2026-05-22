@@ -1,6 +1,6 @@
 # Shadow Mind — Parallel Non-Invasive Cognitive Layer
 
-> A background cognitive substrate that coexists with the 30-agent conscious team without modifying any existing agent prompt, protocol, or memory. **Fully optional, fully disable-able, zero coupling to the conscious layer.**
+> A background cognitive substrate that coexists with the 32-agent conscious team without modifying any existing agent prompt, protocol, or memory. **Fully optional, fully disable-able, zero coupling to the conscious layer.**
 
 ---
 
@@ -8,7 +8,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    CONSCIOUS LAYER (30 agents)              │
+│                    CONSCIOUS LAYER (32 agents)              │
 │   CTO / specialists / verifiers / orchestrator / sentinel   │
 │                                                             │
 │   signal-bus/   memory/   hooks/   trust-ledger/            │
@@ -22,8 +22,8 @@
 │  (1) Observer Daemon ──► observations/*.jsonl               │
 │        tail -F signal-bus, canonical-format parser          │
 │                                                             │
-│  (2) Pattern Library ──► patterns/{ngrams,                  │
-│        grown async       co_occurrences, temporal}.json     │
+│  (2) Pattern Library ──► patterns/{ngrams, co_occurrences,  │
+│        grown async       temporal, topic_clusters}.json     │
 │                                                             │
 │  (3) Speculator ───────► speculations/YYYY-MM-DD-HH.json    │
 │        counterfactuals   every 4h via CronCreate            │
@@ -41,7 +41,7 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Invariant:** Deleting `.claude/agent-memory/shadow-mind/` deletes the entire Shadow Mind. The 30-agent team continues to operate identically — 330/330 contract tests still pass, all hooks still fire, all signal bus writes still land.
+**Invariant:** Deleting `.claude/agent-memory/shadow-mind/` deletes the entire Shadow Mind. The 32-agent team continues to operate identically — 352/352 contract tests still pass, all hooks still fire, all signal bus writes still land.
 
 ---
 
@@ -53,6 +53,7 @@ Continuous process that:
 - `tail -F`s the three signal-bus files (`memory-handoffs.md`, `evolution-signals.md`, `cross-agent-flags.md`)
 - Parses each new canonical entry `- (YYYY-MM-DD, agent=<name>, session=<id>) <content>`
 - Appends a JSON record to `observations/<YYYY-MM-DD>.jsonl`
+- Detects **resolution markers** (resolved, fixed, shipped, merged, deployed, confirmed, remediated, patched, closed) in signal content — adds a `resolution_markers` array to the observation JSON when found, enabling the Pattern Computer to track not just what failed but what fixed it
 - Updates `heartbeats/observer.json` every new write and every 60s
 
 **Enable:**
@@ -69,12 +70,13 @@ Monitor({
 - `rm .claude/hooks/shadow-observer.sh`
 - `rm -rf .claude/agent-memory/shadow-mind/`
 
-### 2. Pattern Library — `patterns/{ngrams,co_occurrences,temporal}.json`
+### 2. Pattern Library — `patterns/{ngrams,co_occurrences,temporal,topic_clusters}.json`
 
-Three JSON files populated by the **Pattern Computer** (component 2b below):
+Four JSON files populated by the **Pattern Computer** (component 2b below):
 - `ngrams.json` — `P(next_agent | current_agent)` transition probabilities per session
 - `co_occurrences.json` — symmetric agent↔agent and signal_type↔signal_type pairs within same session
 - `temporal.json` — hour-of-day + day-of-week + per-agent-hour density
+- `topic_clusters.json` — keyword-clustered observation groups with pattern/trigger/successful_fix/confidence/source_sessions. Enables "have we seen this before?" queries via `[NEXUS:INTUIT]` with the `PATTERN_RETRIEVAL` intent
 
 Pattern files are atomically rewritten (not append); running the Pattern Computer again is idempotent and always reflects the current observation set.
 
@@ -91,6 +93,7 @@ Thresholds (baked into script, tunable if needed):
 - `MIN_NGRAM_COUNT = 2` — at least 2 observed transitions before a pattern is surfaced
 - `MIN_COOCC_COUNT = 2` — at least 2 co-occurrences before a pair is counted
 - `MIN_TEMPORAL_COUNT = 3` — at least 3 observations in same hour/day bucket
+- `MIN_CLUSTER_SIZE = 2` — at least 2 observations sharing ≥2 keywords before a topic cluster is formed
 
 Runtime: <1s for typical observation volumes (<10k records). Updates `heartbeats/pattern-computer.json` on each run. Disable by deleting the script or the CronCreate.
 
@@ -143,9 +146,15 @@ python3 .claude/hooks/shadow-dreamer.py --dry-run   # inspect insights only
 
 **Disable:** `CronDelete <id>` or delete the script. meta-agent retains single-writer authority over `.claude/agents/*.md`; dreams are proposals, never applied automatically.
 
-### 5. Intuition Oracle (created in parallel by meta-oracle)
+### 5. Intuition Oracle — `agents/intuition-oracle.md`
 
-The single queryable surface for the Shadow Mind. Accessed via the OPTIONAL `[NEXUS:INTUIT]` syscall. This daemon is not created by this infrastructure PR — it is registered here (hooks, contract tests, ledger, docs) so the parallel meta-oracle rollout plugs in without further edits.
+The single queryable surface for the Shadow Mind. Accessed via the OPTIONAL `[NEXUS:INTUIT]` syscall. Supports 6 intent types:
+- `PATTERN_LOOKUP` — "what usually follows X?"
+- `NGRAM_PREDICTION` — "what if we hadn't done X?" / "what usually follows X?"
+- `TEAM_PERCEPTION` — "what does the team think about X?"
+- `OUTCOME_CORRELATION` — "when does X typically happen?" / "what correlates with X?"
+- `MISSING_ANGLE` — "what am I missing?"
+- `PATTERN_RETRIEVAL` — "have we seen this failure/pattern before? What fixed it?" — queries `topic_clusters.json` for keyword-matched historical patterns with fix history
 
 ---
 
@@ -161,7 +170,8 @@ One JSON object per line:
   "session": "smart-agents-audit",
   "signal_type": "memory_handoff" | "evolution_signal" | "cross_agent_flag",
   "content": "LoopManager.Start() derives from context.Background() — shutdown race.",
-  "raw_line": "- (2026-04-18, agent=go-expert, session=smart-agents-audit) ..."
+  "raw_line": "- (2026-04-18, agent=go-expert, session=smart-agents-audit) ...",
+  "resolution_markers": []
 }
 ```
 
@@ -213,6 +223,29 @@ evidence:
 generated_at: 2026-04-18T03:04:12Z
 ```
 
+### `patterns/topic_clusters.json`
+```json
+{
+  "version": 1,
+  "computed_at": "2026-05-22T14:30:00Z",
+  "sample_size": 1247,
+  "min_cluster_size": 2,
+  "clusters": [
+    {
+      "cluster_id": "c-001",
+      "pattern": "frontend subscribes to wrong backend task channel",
+      "trigger": ["streaming", "subscribers", "channel", "mismatch"],
+      "successful_fix": "align frontend task_id with backend channel namespace",
+      "confidence": 0.91,
+      "source_sessions": ["2026-05-..."],
+      "observation_count": 4,
+      "first_seen": "2026-05-01T10:00:00Z",
+      "last_seen": "2026-05-18T15:30:00Z"
+    }
+  ]
+}
+```
+
 ### `heartbeats/<component>.json`
 ```json
 {
@@ -254,6 +287,20 @@ A NEW syscall added to the NEXUS table. No agent is required to use it.
 
 ---
 
+## Activation Protocol
+
+The Shadow Mind requires activation to learn. At the START of every session:
+
+1. **Start Observer daemon** (if not already running): `Monitor` command for `hooks/shadow-observer.sh` with `persistent: true`
+2. **Run Pattern Computer** (one-shot refresh): `python3 hooks/shadow-pattern-computer.py`
+3. **Verify heartbeat freshness:** Check `heartbeats/observer.json` — `last_run` must be < 24h
+
+The autostart hook at `hooks/shadow-mind-autostart.sh` handles steps 1-3 automatically at SessionStart. Run `hooks/nexus-doctor.sh` to check Shadow Mind health status.
+
+If the Shadow Mind is installed but dormant (observer not running, zero observations collected), agents querying via `[NEXUS:INTUIT]` will receive `INSUFFICIENT_DATA` responses. The entire system is scaffolding until the Observer starts tailing the signal bus.
+
+---
+
 ## Disable-ability Guarantees
 
 | Target | Command | Effect |
@@ -262,7 +309,7 @@ A NEW syscall added to the NEXUS table. No agent is required to use it.
 | Speculator only | `CronDelete <speculator-id>` | No new counterfactuals generated. |
 | Dreamer only | `CronDelete <dreamer-id>` | No new dreams generated. |
 | All background components | Kill observer + CronDelete both schedules | All generators idle; observations/patterns frozen. |
-| Entire Shadow Mind | `rm -rf .claude/agent-memory/shadow-mind/` + remove hook scripts | Layer fully removed. **30-agent team still passes 330/330 contract tests.** |
+| Entire Shadow Mind | `rm -rf .claude/agent-memory/shadow-mind/` + remove hook scripts | Layer fully removed. **32-agent team still passes 352/352 contract tests.** |
 
 **Zero-coupling verification:** Run the contract test suite with and without `shadow-mind/` present. Counts and outcomes are identical.
 

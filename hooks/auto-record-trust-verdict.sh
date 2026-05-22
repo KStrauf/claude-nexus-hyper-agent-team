@@ -61,7 +61,7 @@ case "$AGENT_TYPE" in
   challenger)
     # Expect output containing CHALLENGE TARGET and CHALLENGE OUTCOME.
     TARGET=$(echo "$LAST_MSG" | grep -m1 -oE 'CHALLENGE TARGET:[[:space:]]*[a-z0-9-]+' | sed -E 's/CHALLENGE TARGET:[[:space:]]*//')
-    OUTCOME=$(echo "$LAST_MSG" | grep -m1 -oE 'CHALLENGE OUTCOME:[[:space:]]*(SURVIVED|LOST)' | sed -E 's/CHALLENGE OUTCOME:[[:space:]]*//')
+    OUTCOME=$(echo "$LAST_MSG" | grep -m1 -oE 'CHALLENGE OUTCOME:[[:space:]]*(SURVIVED|MODIFIED|OVERTURNED|LOST)' | sed -E 's/CHALLENGE OUTCOME:[[:space:]]*//')
 
     if [ -n "$TARGET" ] && [ -n "$OUTCOME" ]; then
       python3 "$LEDGER" challenge --agent "$TARGET" --outcome "$OUTCOME" >/dev/null 2>&1 || {

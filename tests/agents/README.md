@@ -84,4 +84,4 @@ def test_my_new_contract(agent: AgentFile) -> TestResult:
 
 ## Expected Pass Rate
 
-All 31 custom agents should pass all 11 contracts. Current state: 341/341 passing.
+All 32 custom agents should pass all 11 contracts. Current state: 352/352 passing.

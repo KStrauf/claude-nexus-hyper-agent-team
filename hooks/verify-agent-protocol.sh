@@ -29,10 +29,10 @@ if [ -z "$LAST_MSG" ]; then
   exit 0
 fi
 
-# Only enforce protocol on our 26 custom agents.
+# Only enforce protocol on our 32 custom agents.
 # Built-in Claude Code agents (Bash, Explore, Plan, general-purpose) don't
 # follow our closing protocol and shouldn't be validated against it.
-CUSTOM_AGENTS="^(cto|orchestrator|deep-planner|deep-qa|deep-reviewer|meta-agent|memory-coordinator|session-sentinel|elite-engineer|ai-platform-architect|frontend-platform-engineer|go-expert|python-expert|typescript-expert|infra-expert|database-expert|observability-expert|api-expert|test-engineer|cluster-awareness|benchmark-agent|beam-architect|elixir-engineer|go-hybrid-engineer|beam-sre|erlang-solutions-consultant|talent-scout|recruiter|evidence-validator|challenger|intuition-oracle)$"
+CUSTOM_AGENTS="^(cto|orchestrator|deep-planner|deep-qa|deep-reviewer|meta-agent|memory-coordinator|session-sentinel|elite-engineer|ai-platform-architect|frontend-platform-engineer|go-expert|python-expert|typescript-expert|infra-expert|database-expert|observability-expert|api-expert|test-engineer|cluster-awareness|benchmark-agent|beam-architect|elixir-engineer|go-hybrid-engineer|beam-sre|erlang-solutions-consultant|talent-scout|recruiter|evidence-validator|challenger|intuition-oracle|code-sentinel)$"
 
 if ! echo "$AGENT_TYPE" | grep -qE "$CUSTOM_AGENTS"; then
   exit 0

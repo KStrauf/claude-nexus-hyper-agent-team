@@ -12,11 +12,11 @@
 #                                    persistent: true })
 #
 # DISABLE:
-#   Any one of these turns the observer off without affecting the 30-agent team:
+#   Any one of these turns the observer off without affecting the 32-agent team:
 #     * Kill the Monitor process (TaskStop or kill <pid>)
 #     * Delete this file
 #     * Delete .claude/agent-memory/shadow-mind/ (full layer removal)
-#   The conscious layer (30 agents + signal bus) is unaffected.
+#   The conscious layer (32 agents + signal bus) is unaffected.
 #
 # GUARANTEES:
 #   - Read-only against signal-bus files (tail -F, no writes)
@@ -84,9 +84,24 @@ write_observation() {
   session_json=$(printf '%s' "$session" | json_escape)
   content_json=$(printf '%s' "$content" | json_escape)
   raw_json=$(printf '%s' "$raw_line" | json_escape)
+
+  # Detect resolution markers in content for fix-tracking
+  local resolution_markers="[]"
+  local content_lower
+  content_lower=$(printf '%s' "$content" | tr '[:upper:]' '[:lower:]')
+  local found_markers=()
+  for marker in resolved fixed shipped merged deployed confirmed remediated patched closed; do
+    if [[ "$content_lower" == *"$marker"* ]]; then
+      found_markers+=("\"$marker\"")
+    fi
+  done
+  if [ ${#found_markers[@]} -gt 0 ]; then
+    resolution_markers="[$(IFS=,; echo "${found_markers[*]}")]"
+  fi
+
   {
-    printf '{"ts":"%s","signal_date":"%s","agent":%s,"session":%s,"signal_type":"%s","content":%s,"raw_line":%s}\n' \
-      "$ts_now" "$date" "$agent_json" "$session_json" "$signal_type" "$content_json" "$raw_json"
+    printf '{"ts":"%s","signal_date":"%s","agent":%s,"session":%s,"signal_type":"%s","content":%s,"raw_line":%s,"resolution_markers":%s}\n' \
+      "$ts_now" "$date" "$agent_json" "$session_json" "$signal_type" "$content_json" "$raw_json" "$resolution_markers"
   } >>"$out_file"
 }
 

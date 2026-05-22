@@ -756,8 +756,8 @@ recruiter (8-phase pipeline begins)
   Phase 6: handoff → meta-agent writes .claude/agents/aws-specialist.md atomically
            + updates contract-test list + hook regexes + trust ledger defaults + memory scaffold
   Phase 7: post-hire-verify.sh runs (gate; JSON pass/fail)
-  Phase 8: probation tracking begins (status: probationary in ledger)
-           → promotion to active after refutation rate <25% across ≥5 verdicts
+  Phase 8: lifecycle tracking begins (status: candidate in ledger)
+           → promoted to probationary after post-hire-verify, then active after ≥5 verdicts with refutation <25%
 ```
 
 ### Starting Prompt
@@ -811,7 +811,7 @@ bash .claude/hooks/post-hire-verify.sh aws-specialist
 → {"status":"verified","agent":"aws-specialist","next_gate":"probation_tracking"}
 
 python3 .claude/agent-memory/trust-ledger/ledger.py standings | grep aws
-→ aws-specialist  probationary  0.9  1.0  0C/0P/0R  0S/0L
+→ aws-specialist  candidate     0.9  1.0  0C/0P/0R  0S/0L
 ```
 
 ### 3 Months Later (Probation Gate)
@@ -928,4 +928,4 @@ Continue until `DISPATCH RECOMMENDATION: NONE`.
 
 ---
 
-*Last updated: 2026-04-18 — v3.0 with 4 new scenarios (16–19): BEAM kernel build, Gate 2 validation, hiring pipeline, Shadow Mind intuition.*
+*Last updated: 2026-05-22 — v3.2 with 32 agents, execution modes, 6-state lifecycle, quality gates, nexus-doctor, topic clusters.*

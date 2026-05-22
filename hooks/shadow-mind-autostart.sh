@@ -74,7 +74,7 @@ fi
 
 # Report heartbeat freshness for intuition oracle staleness check
 if [ -f "$HEARTBEAT_FILE" ]; then
-  LAST_HEARTBEAT=$(jq -r '.last_seen // empty' "$HEARTBEAT_FILE" 2>/dev/null)
+  LAST_HEARTBEAT=$(jq -r '.last_run // empty' "$HEARTBEAT_FILE" 2>/dev/null)
   [ -n "$LAST_HEARTBEAT" ] && echo "Shadow Mind: ACTIVE (last heartbeat=$LAST_HEARTBEAT)" >&2
 fi
 

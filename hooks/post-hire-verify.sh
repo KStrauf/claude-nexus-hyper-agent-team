@@ -27,7 +27,7 @@
 #      - .claude/agent-memory/trust-ledger/ledger.py DEFAULT_DOMAINS dict
 #   3. .claude/agent-memory/<new-agent>/MEMORY.md exists
 #   4. .claude/agent-memory/trust-ledger/<new-agent>.json exists with
-#      status: probationary
+#      status: candidate
 #
 set -uo pipefail
 
@@ -120,7 +120,7 @@ if [ ! -f "$MEMORY_INDEX" ]; then
   fail "3" "memory index not found at $MEMORY_INDEX (meta-agent must create .claude/agent-memory/$NEW_AGENT/MEMORY.md during registration)"
 fi
 
-# ---- Step 4: Trust-ledger JSON exists with status: probationary -----------
+# ---- Step 4: Trust-ledger JSON exists with status: candidate ---------------
 
 LEDGER_JSON="$REPO_ROOT/.claude/agent-memory/trust-ledger/$NEW_AGENT.json"
 # If the JSON doesn't exist yet, bootstrap it via the ledger CLI so the
@@ -128,7 +128,7 @@ LEDGER_JSON="$REPO_ROOT/.claude/agent-memory/trust-ledger/$NEW_AGENT.json"
 # has a ledger entry at probation creation."
 if [ ! -f "$LEDGER_JSON" ]; then
   # Bootstrap: load+save the record to persist defaults (including
-  # status: probationary via _default_status_for).
+  # status: candidate via NEW_HIRE_STATUS).
   python3 - <<PYEOF "$NEW_AGENT" "$REPO_ROOT" 2>/dev/null || fail "4" "failed to bootstrap ledger JSON for $NEW_AGENT"
 import sys
 sys.path.insert(0, sys.argv[2] + "/.claude/agent-memory/trust-ledger")
@@ -144,18 +144,18 @@ if [ ! -f "$LEDGER_JSON" ]; then
   fail "4" "trust-ledger JSON still missing after bootstrap: $LEDGER_JSON"
 fi
 
-# Verify the status field is "probationary" (new hires ONLY — if meta-agent
+# Verify the status field is "candidate" (new hires ONLY — if meta-agent
 # is re-running the hook on an already-promoted agent, that's a separate
 # class of error we don't check here).
 status=$(python3 -c "
 import json, sys
-with open('$LEDGER_JSON') as f:
+with open(sys.argv[1]) as f:
     r = json.load(f)
 print(r.get('status', 'MISSING'))
-" 2>/dev/null)
+" "$LEDGER_JSON" 2>/dev/null)
 
-if [ "$status" != "probationary" ]; then
-  fail "4" "trust-ledger status for '$NEW_AGENT' is '$status', expected 'probationary'"
+if [ "$status" != "candidate" ]; then
+  fail "4" "trust-ledger status for '$NEW_AGENT' is '$status', expected 'candidate'"
 fi
 
 # ---- All gates passed ------------------------------------------------------

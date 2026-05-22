@@ -21,6 +21,7 @@ PLANNING                             expert
 ─────────────────────              api-expert       → GraphQL
 deep-planner     → plans          test-engineer    → tests (writes too)
 orchestrator     → execute        beam-sre         → BEAM cluster ops
+                                  code-sentinel    → eng discipline
 
 INTELLIGENCE                      META
 ─────────────────────              ─────────────────────
@@ -168,6 +169,7 @@ cluster-awareness + deep-reviewer (parallel) →
 | "team coverage gap" / "detect missing specialist" / "audit team gaps" | `talent-scout` |
 | "hire new agent" / "run hiring pipeline" | `recruiter` (after talent-scout requisition) |
 | "consult the team's intuition" / "has pattern been seen" / "INTUIT" | `intuition-oracle` (via `[NEXUS:INTUIT]`) |
+| "audit engineering discipline" / "anti-hallucination check" / "code-sentinel" | `code-sentinel` |
 | "run contract tests" / "check agent health" | `python3 .claude/tests/agents/run_contract_tests.py` |
 | "show trust standings" | `./.claude/agent-memory/trust-ledger/ledger.py standings` |
 
@@ -187,11 +189,44 @@ cluster-awareness + deep-reviewer (parallel) →
 
 ---
 
+## Execution Modes
+
+| Mode | Trigger | Max Dispatches | CTO? |
+|------|---------|----------------|------|
+| **FAST** | "quick", "just do X" | 3 | No |
+| **BALANCED** | default | 6 | Multi-domain |
+| **FULL_POWER** | "gold prompt", "full power" | ∞ | Yes |
+
+---
+
+## Agent Lifecycle States
+
+```
+candidate (2) → probationary (3) → active (4) → trusted (5)
+                                                    ↓
+                                              deprecated (1) → retired (0)
+```
+
+**Routing:** trusted > active > probationary > candidate. Never dispatch deprecated.
+
+**Ledger commands:**
+```bash
+ledger.py promote --agent <name>       # advance one state
+ledger.py deprecate --agent <name>     # active → deprecated
+ledger.py standings                    # show all agents with lifecycle state
+```
+
+---
+
 ## Quick Health Checks
 
 ```bash
+# RECOMMENDED: Run NEXUS Doctor (covers all checks below + more)
+bash hooks/nexus-doctor.sh --skip-tests    # fast (skip contract tests)
+bash hooks/nexus-doctor.sh                 # full (includes contract tests)
+
 # Agent files present?
-ls .claude/agents/*.md | wc -l   # should be 31
+ls .claude/agents/*.md | wc -l   # should be 32
 
 # Signal bus exists?
 ls .claude/agent-memory/signal-bus/   # should show 5 files
@@ -209,7 +244,10 @@ wc -l .claude/agent-memory/signal-bus/*.md
 ls -la .claude/agent-memory/shadow-mind/heartbeats/ 2>/dev/null   # check mtimes < 24h
 
 # Contract tests passing?
-python3 .claude/tests/agents/run_contract_tests.py   # expected: 341 passed
+python3 .claude/tests/agents/run_contract_tests.py   # expected: 352 passed
+
+# Trust ledger standings
+python3 .claude/agent-memory/trust-ledger/ledger.py standings
 ```
 
 ---
@@ -219,9 +257,9 @@ python3 .claude/tests/agents/run_contract_tests.py   # expected: 341 passed
 | File | Purpose |
 |------|---------|
 | `CLAUDE.md` | Main thread protocol (kernel rules) |
-| `.claude/agents/*.md` | 31 agent prompts (29 specialists + 2 verifiers) |
+| `.claude/agents/*.md` | 32 agent prompts (30 specialists + 2 verifiers) |
 | `.claude/hooks/*.sh` | Protocol enforcement hooks (auto-run) + Shadow Mind scripts (shadow-*) + post-hire-verify.sh |
-| `.claude/tests/agents/` | 341-assertion contract test suite |
+| `.claude/tests/agents/` | 352-assertion contract test suite |
 | `.claude/agent-memory/trust-ledger/` | Per-agent accuracy scorecard |
 | `.claude/agent-memory/<agent>/MEMORY.md` | Per-agent memory index |
 | `.claude/agent-memory/signal-bus/*.md` | Async message bus |
@@ -254,4 +292,4 @@ python3 .claude/tests/agents/run_contract_tests.py   # expected: 341 passed
 
 ---
 
-*Last updated: 2026-04-18 — v3.0 with 31 agents, hiring pipeline, Shadow Mind.*
+*Last updated: 2026-05-22 — v3.2 with 32 agents, execution modes, 6-state lifecycle, quality gates, nexus-doctor, topic clusters.*

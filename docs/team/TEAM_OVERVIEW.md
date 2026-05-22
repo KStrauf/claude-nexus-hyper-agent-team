@@ -1,4 +1,4 @@
-# 31-Agent Team — Architecture & Capabilities
+# 32-Agent Team — Architecture & Capabilities
 
 > A layered agent operating system built on Claude Code, designed for complex engineering work spanning Go, Python, TypeScript, BEAM/Elixir, Kubernetes, and GCP infrastructure — with dynamic specialist hiring and an optional parallel cognitive layer.
 
@@ -6,7 +6,7 @@
 
 ## 1. Executive Summary
 
-The <your project> agent team is a **31-agent workforce** (29 specialists + 2 verifiers) organized as a layered operating system. Each agent has deep domain expertise, a persistent memory directory, and communicates with peers via a structured async message bus. The team is coordinated by a **CTO agent** (supreme technical authority), validated by a **session-sentinel** (protocol enforcer), and independently audited by the verification tier (`evidence-validator` + `challenger`). The ecosystem is hardened by protocol-enforcement hooks (hard invariants), a 341-assertion contract test suite (regression prevention), and a Bayesian-blended trust ledger (per-agent accuracy calibration).
+The <your project> agent team is a **32-agent workforce** (30 specialists + 2 verifiers) organized as a layered operating system. Each agent has deep domain expertise, a persistent memory directory, and communicates with peers via a structured async message bus. The team is coordinated by a **CTO agent** (supreme technical authority), validated by a **session-sentinel** (protocol enforcer), and independently audited by the verification tier (`evidence-validator` + `challenger`). The ecosystem is hardened by protocol-enforcement hooks (hard invariants), a 352-assertion contract test suite (regression prevention), and a Bayesian-blended trust ledger (per-agent accuracy calibration).
 
 Three defining innovations:
 - **NEXUS Protocol** — a syscall interface that lets subagents request privileged main-thread operations (agent spawning, MCP installation, user questions, cron jobs, intuition queries) without directly possessing those tools. Solves the Claude Code privilege boundary problem that normally restricts multi-agent systems.
@@ -43,7 +43,8 @@ Three defining innovations:
 │              elixir-engineer, go-hybrid-engineer             │
 │  Guardians:  go/python/typescript-expert, deep-qa,           │
 │              deep-reviewer, infra/database/observability/    │
-│              api-expert, test-engineer, beam-sre             │
+│              api-expert, test-engineer, beam-sre,            │
+│              code-sentinel                                   │
 │  Intelligence: memory-coordinator, cluster-awareness,        │
 │              benchmark-agent, erlang-solutions-consultant,   │
 │              talent-scout, intuition-oracle (optional)       │
@@ -60,7 +61,8 @@ Three defining innovations:
 │  LAYER 1.75 — SHADOW MIND (optional, delete-to-disable)      │
 │  Observer daemon (shadow-observer.sh)                        │
 │  Pattern Computer (shadow-pattern-computer.py, cron)         │
-│  Pattern Library (ngrams/co_occurrences/temporal json)       │
+│  Pattern Library (ngrams/co_occurrences/temporal/             │
+│    topic_clusters json)                                      │
 │  Speculator (shadow-speculator.py, cron)                     │
 │  Dreamer (shadow-dreamer.py, daily)                          │
 │  intuition-oracle agent (queryable via [NEXUS:INTUIT])       │
@@ -74,7 +76,7 @@ Three defining innovations:
 │    • post-hire-verify.sh (recruiter gate, JSON pass/fail)    │
 │    • pre-commit-agent-contracts.sh (git pre-commit)          │
 │  Contract tests (.claude/tests/agents/)                      │
-│    • 11 contracts × 31 agents = 341 assertions               │
+│    • 11 contracts × 32 agents = 352 assertions               │
 │  Trust ledger (.claude/agent-memory/trust-ledger/)           │
 │    • Bayesian-blended per-agent accuracy score               │
 ├──────────────────────────────────────────────────────────────┤
@@ -95,7 +97,7 @@ Information flows up (agent findings → user) and control flows down (user inte
 
 ---
 
-## 3. The 31 Agents
+## 3. The 32 Agents
 
 ### Tier 1 — Builders (Write Production Code)
 
@@ -123,6 +125,7 @@ Information flows up (agent findings → user) and control flows down (user inte
 | `test-engineer` | Test architecture design AND writes test code (unique: both reviewer AND builder for tests) | After EVERY implementation task, when flaky tests appear |
 | `api-expert` | GraphQL Federation, API contract design, resolver patterns | API contract/schema/federation changes |
 | `beam-sre` | libcluster, BEAM metrics (Telemetry, Prometheus exporters), StatefulSet manifests for Plane 1, SIGTERM graceful-shutdown, hot-code-load operations, cluster chaos harnesses | BEAM cluster ops, Plane 1 K8s, hot-code-load execution, Gate 2 harness authoring |
+| `code-sentinel` | Engineering discipline enforcement, anti-hallucination compliance, evidence-before-action discipline, self-vetting protocol adherence, production-first code standards (40-rule standard) | After implementation to audit discipline; when validation claims need verification; production-readiness checks |
 
 ### Tier 3 — Strategists
 
@@ -168,7 +171,7 @@ Information flows up (agent findings → user) and control flows down (user inte
 | `evidence-validator` | Claim verification against source truth | Given a finding (file:line + claim), reads source and classifies CONFIRMED / PARTIALLY_CONFIRMED / REFUTED / UNVERIFIABLE with quoted evidence. Auto-dispatched on HIGH-severity findings. |
 | `challenger` | Adversarial review | Systematically tries to invalidate recommendations along 5 dimensions: steelman alternatives, hidden assumptions, evidence quality, missed cases, downstream impact. Auto-dispatched on CTO synthesis AND on new-agent drafts from the hiring pipeline. |
 
-**Why Tier 8 exists:** The 29 specialists produce findings. Tier 8 **verifies** those findings and **challenges** the synthesis. This solves the "trust at scale" problem where one user can't vet 29 agent outputs — Tier 8 does the vetting, and findings that survive both verification and adversarial review earn higher trust ledger weight.
+**Why Tier 8 exists:** The 30 specialists produce findings. Tier 8 **verifies** those findings and **challenges** the synthesis. This solves the "trust at scale" problem where one user can't vet 30 agent outputs — Tier 8 does the vetting, and findings that survive both verification and adversarial review earn higher trust ledger weight.
 
 ---
 
@@ -324,7 +327,7 @@ recruiter (8 phases)
 - **Gated by evidence, not by hunch.** No one hires an agent on a single session's frustration — hiring requires 5-signal convergence over time AND session-sentinel co-sign.
 - **Quality-gated.** Every new agent must pass the 11-contract test suite (same as existing agents) before entering the roster. The `post-hire-verify.sh` hook refuses non-atomic registrations.
 - **Challenger-gated.** The adversarial review layer stress-tests every new prompt. Drafts that can't defend their domain boundaries don't ship.
-- **Probationary by default.** New agents enter at `probationary` status in the trust ledger. Their verdicts count but their weight doesn't reach full until their refutation rate proves they carry signal.
+- **Candidate-first lifecycle.** New agents enter at `candidate` status in the trust ledger, promoted to `probationary` after post-hire-verify, then to `active` after 5 dispatches with refutation rate < 25%. Eventually `trusted` after sustained excellence (trust > 0.8, ≥3 successful tasks, 0 critical failures).
 - **meta-agent is the single writer.** `recruiter` never touches `.claude/agents/` directly — it hands the validated draft to meta-agent, which performs atomic registration (agent file + contract test list + hook regexes + trust ledger default + memory scaffold) as one commit.
 
 ### When to Dispatch
@@ -340,7 +343,7 @@ recruiter (8 phases)
 
 ## 8. Shadow Mind (Optional Parallel Cognitive Layer)
 
-The **Shadow Mind** is a non-invasive parallel cognitive layer that runs alongside the 31-agent conscious team without modifying any existing agent prompt, protocol, memory directory, or signal bus entry. It's an **optional** layer — delete the directory and the team operates identically.
+The **Shadow Mind** is a non-invasive parallel cognitive layer that runs alongside the 32-agent conscious team without modifying any existing agent prompt, protocol, memory directory, or signal bus entry. It's an **optional** layer — delete the directory and the team operates identically.
 
 ### Six Components
 
@@ -357,6 +360,8 @@ The **Shadow Mind** is a non-invasive parallel cognitive layer that runs alongsi
 │    patterns/ngrams.json                                 │
 │    patterns/co_occurrences.json                         │
 │    patterns/temporal.json                               │
+│    patterns/topic_clusters.json (keyword clusters +     │
+│       fix history for "have we seen this?" queries)     │
 ├─────────────────────────────────────────────────────────┤
 │ 4. Speculator (shadow-speculator.py, cron)              │
 │    reads observations → generates counterfactual        │
@@ -408,7 +413,7 @@ rm -rf .claude/agent-memory/shadow-mind
 rm .claude/hooks/shadow-*.{sh,py}
 ```
 
-All 341/341 contract tests continue to pass. The oracle returns `NO_DATA` / `[NEXUS:ERR] intuition-oracle unavailable` and CTO/other agents proceed with normal Pattern A-F workflows.
+All 352/352 contract tests continue to pass. The oracle returns `NO_DATA` / `[NEXUS:ERR] intuition-oracle unavailable` and CTO/other agents proceed with normal Pattern A-F workflows.
 
 ### Why This Design
 - **Never interrupts.** No agent is required to consult the oracle. The conscious team runs identically whether or not the Shadow Mind is active.
@@ -420,7 +425,64 @@ Full data schemas, enable/disable commands, and component details are documented
 
 ---
 
-## 9. Self-Evolution Mechanism
+## 9. Execution Modes
+
+Every task starts with mode selection based on complexity. Default: BALANCED.
+
+| Mode | Routing | Max Dispatches | Gates | Examples |
+|------|---------|----------------|-------|----------|
+| **FAST** | Main thread dispatches specialist directly — no CTO | 3 | evidence-validator only if HIGH severity | Single bug fix, one-file review, quick question |
+| **BALANCED** | Main thread dispatches specialist; CTO only for multi-domain | 6 | evidence-validator on HIGH + challenger on recommendations | Feature build, security review, multi-file refactor |
+| **FULL_POWER** | session-sentinel → CTO → full team delegation | unlimited | ALL mandatory (validator + challenger + quality gates per task type) | Architecture decision, production incident, full audit |
+
+**Triggers:** "fast mode" / "quick" → FAST. "full power" / "gold prompt" → FULL_POWER. Everything else → BALANCED.
+
+---
+
+## 10. Agent Lifecycle States
+
+Agents follow a 6-state lifecycle with trust-weighted routing preference:
+
+```
+candidate (2) → probationary (3) → active (4) → trusted (5)
+                                                    ↓
+                                              deprecated (1) → retired (0)
+```
+
+| State | Entry Condition | Dispatch Preference |
+|-------|----------------|---------------------|
+| `candidate` | New agent created by hiring pipeline | 2 — validation tasks only |
+| `probationary` | Contract tests pass + challenger approval | 3 — standard dispatch |
+| `active` | 5 dispatches, refutation < 25%, trust ≥ 0.5 | 4 — full dispatch |
+| `trusted` | trust_weight > 0.8, ≥3 successful tasks, 0 critical failures | 5 — preferred for critical work |
+| `deprecated` | Flagged for sunset by meta-agent | 1 — no new work |
+| `retired` | Permanently offline | 0 — never dispatched |
+
+When multiple agents can handle a task, the dispatcher prefers agents with higher lifecycle scores.
+
+---
+
+## 11. Quality Gates by Task Type
+
+| Task Type | Required Gates | Optional Gates |
+|-----------|---------------|----------------|
+| Code change | tests, build/lint, diff summary, language-expert review | deep-qa |
+| Security finding | evidence-validator, exploitability assessment, mitigation plan | deep-reviewer |
+| Architecture decision | challenger, tradeoff matrix, rollback strategy | benchmark-agent |
+| Production incident | timeline, blast radius, recovery steps, postmortem | cluster-awareness |
+| New agent hire | contract tests (11×1), challenger (7 dimensions), meta-agent registration | talent-scout co-sign |
+| Infrastructure change | infra-expert review, terraform plan, rollback manifest | deep-reviewer |
+| Database migration | database-expert review, migration safety checklist, rollback SQL | test-engineer |
+
+---
+
+## 12. Conflict Arbitration Protocol
+
+When agents disagree, CTO uses a structured arbitration template with 11 fields: both proposals with evidence (file:line citations), cost/effort/risk/reversibility comparison, testability comparison, trust weights from the ledger, and an evidence-based decision with reasoning. After arbitration, `challenger` must attack the selected decision before implementation proceeds.
+
+---
+
+## 13. Self-Evolution Mechanism
 
 The meta-agent is the only agent with write authority to `.claude/agents/*.md`. During Pattern F, it:
 
@@ -435,7 +497,7 @@ The CTO is also allowed to self-evolve (edit only `.claude/agents/cto.md`) — t
 
 ---
 
-## 10. Design Principles
+## 14. Design Principles
 
 ### 1. Specialist Identity Runs Deep
 Each agent has a strong prompt that makes it behave like a domain expert. This was empirically validated when a "test" spawn of go-expert produced a real 11-finding Go code review during shutdown — its identity was so strong it couldn't help itself.
@@ -457,7 +519,7 @@ Every session makes the next session smarter via Pattern F. The team learns from
 
 ---
 
-## 11. Performance & Cost Notes
+## 15. Performance & Cost Notes
 
 - **Most agents use `opus`** (deepest reasoning) — this is expensive but appropriate for complex work
 - **session-sentinel uses `sonnet`** — sufficient for protocol audits
@@ -481,7 +543,7 @@ The team is OVER-ENGINEERED for:
 
 ---
 
-## 12. Related Documentation
+## 16. Related Documentation
 
 - **TEAM_RUNBOOK.md** — How to operate the team day-to-day
 - **TEAM_CHEATSHEET.md** — Quick reference card
@@ -490,4 +552,4 @@ The team is OVER-ENGINEERED for:
 
 ---
 
-*Last updated: 2026-04-18. Team v3.0 — 31 agents, NEXUS protocol, dynamic hiring pipeline, Shadow Mind cognitive layer.*
+*Last updated: 2026-05-22. Team v3.2 — 32 agents, execution modes, 6-state lifecycle, quality gates by task type, conflict arbitration, topic clusters, nexus-doctor.*

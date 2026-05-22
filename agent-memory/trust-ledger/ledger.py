@@ -55,7 +55,9 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 LEDGER_DIR = Path(__file__).resolve().parent
@@ -94,16 +96,18 @@ DEFAULT_DOMAINS = {
     "evidence-validator": "Claim verification",
     "challenger": "Adversarial review",
     "intuition-oracle": "Shadow Mind query surface — probabilistic pattern-lookup/counterfactual/team-perception responses via INTUIT_RESPONSE v1 envelope; read-only, non-interrupting, optional-to-consult",
+    "code-sentinel": "engineering discipline enforcement, anti-hallucination compliance, production-quality standards, self-vetting protocol",
 }
 
-# Agent lifecycle status — probationary during trial window, active once promotion
-# criteria met (refutation rate < 25% across ≥5 dispatches), retired when sunset.
-VALID_STATUSES = {"probationary", "active", "retired"}
-NEW_HIRE_STATUS = "probationary"
+# Agent lifecycle status — 6-state lifecycle:
+#   candidate → probationary → active → trusted (forward promotion)
+#   any non-retired → deprecated → retired (sunset path)
+VALID_STATUSES = {"candidate", "probationary", "active", "trusted", "deprecated", "retired"}
+NEW_HIRE_STATUS = "candidate"  # was "probationary"
 LEGACY_STATUS = "active"  # Default for pre-existing agents migrated forward.
 
 # Agents that pre-date the status field and should be migrated to "active"
-# on first load. New agents added AFTER 2026-04-18 default to "probationary".
+# on first load. New agents added AFTER 2026-04-18 default to "candidate".
 LEGACY_ACTIVE_AGENTS = {
     "cto", "orchestrator", "deep-planner", "deep-qa", "deep-reviewer",
     "meta-agent", "memory-coordinator", "session-sentinel",
@@ -114,6 +118,7 @@ LEGACY_ACTIVE_AGENTS = {
     "beam-architect", "elixir-engineer", "go-hybrid-engineer",
     "beam-sre", "erlang-solutions-consultant",
     "evidence-validator", "challenger",
+    "talent-scout", "recruiter", "intuition-oracle", "code-sentinel",
 }
 
 
@@ -156,7 +161,17 @@ def load(agent: str) -> dict:
 
 def save(agent: str, record: dict) -> None:
     path = ledger_path(agent)
-    path.write_text(json.dumps(record, indent=2) + "\n")
+    data = (json.dumps(record, indent=2) + "\n").encode()
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        os.write(fd, data)
+    finally:
+        os.close(fd)
+    try:
+        os.replace(tmp, str(path))
+    except BaseException:
+        os.unlink(tmp)
+        raise
 
 
 def compute_accuracy(findings: dict) -> float:
@@ -186,6 +201,14 @@ def compute_trust_weight(record: dict) -> float:
     prior_mean = 0.9  # Slight optimism — most agents ARE accurate.
 
     return (accuracy * verifiable + prior_mean * prior_n) / (verifiable + prior_n)
+
+
+PREFERENCE_ORDER = {"trusted": 5, "active": 4, "probationary": 3, "candidate": 2, "deprecated": 1, "retired": 0}
+
+def trust_preference(agent: str) -> int:
+    """Returns dispatch preference score. Higher = preferred by router."""
+    record = load(agent)
+    return PREFERENCE_ORDER.get(record.get("status", "active"), 4)
 
 
 def update_scores(record: dict) -> None:
@@ -232,7 +255,7 @@ def cmd_challenge(args: argparse.Namespace) -> int:
     agent = args.agent
     outcome = args.outcome.upper()
 
-    valid = {"SURVIVED", "LOST"}
+    valid = {"SURVIVED", "MODIFIED", "OVERTURNED", "LOST"}
     if outcome not in valid:
         print(f"ERROR: outcome must be one of {valid}", file=sys.stderr)
         return 2
@@ -240,7 +263,7 @@ def cmd_challenge(args: argparse.Namespace) -> int:
     record = load(agent)
     record["challenges"]["received"] += 1
 
-    if outcome == "SURVIVED":
+    if outcome in ("SURVIVED", "MODIFIED"):
         record["challenges"]["survived"] += 1
     else:
         record["challenges"]["lost"] += 1
@@ -253,6 +276,7 @@ def cmd_challenge(args: argparse.Namespace) -> int:
     })
     record["history"] = record["history"][-200:]
 
+    update_scores(record)
     save(agent, record)
     print(f"✓ {agent}: challenge {outcome} recorded.")
     return 0
@@ -292,31 +316,71 @@ def cmd_promote(args: argparse.Namespace) -> int:
     record = load(agent)
     current = record.get("status", _default_status_for(agent))
 
-    if current == "active":
-        print(f"ℹ {agent}: already active, no change.")
+    # Determine next status in the promotion ladder.
+    promotion_ladder = {
+        "candidate": "probationary",
+        "probationary": "active",
+        "active": "trusted",
+    }
+
+    if current == "trusted":
+        print(f"ℹ {agent}: already trusted (highest active rank), no change.")
         return 0
-    if current == "retired":
-        print(f"ERROR: {agent} is retired — cannot promote. Re-hire via recruiter first.",
+    if current in ("retired", "deprecated"):
+        print(f"ERROR: {agent} is {current} — cannot promote. Re-hire via recruiter first.",
+              file=sys.stderr)
+        return 2
+    if current not in promotion_ladder:
+        print(f"ERROR: {agent} has unknown status '{current}' — cannot promote.",
               file=sys.stderr)
         return 2
 
-    if not args.force:
-        eligible, reason = _promotion_eligibility(record)
-        if not eligible:
-            print(f"ERROR: {agent} not eligible for promotion — {reason}. "
-                  f"Use --force to override.", file=sys.stderr)
-            return 2
+    next_status = promotion_ladder[current]
 
-    record["status"] = "active"
+    # Eligibility checks per transition (unless --force).
+    if not args.force:
+        if current == "candidate":
+            # candidate → probationary: requires contract tests + challenger approval.
+            # In practice this is gated by the recruiter pipeline; --force overrides.
+            print(f"ERROR: {agent} is a candidate — promotion to probationary requires "
+                  f"contract tests + challenger approval. Use --force to override.",
+                  file=sys.stderr)
+            return 2
+        elif current == "probationary":
+            # probationary → active: existing criteria (5 dispatches, refutation < 25%).
+            eligible, reason = _promotion_eligibility(record)
+            if not eligible:
+                print(f"ERROR: {agent} not eligible for promotion — {reason}. "
+                      f"Use --force to override.", file=sys.stderr)
+                return 2
+        elif current == "active":
+            # active → trusted: trust_weight > 0.8 AND ≥3 successful tasks AND 0 critical failures.
+            trust_w = compute_trust_weight(record)
+            findings = record["findings"]
+            successful = findings["confirmed"] + findings["partially_confirmed"]
+            critical_failures = findings["refuted"]
+            issues = []
+            if trust_w <= 0.8:
+                issues.append(f"trust_weight {trust_w:.3f} ≤ 0.8")
+            if successful < 3:
+                issues.append(f"successful tasks {successful} < 3")
+            if critical_failures > 0:
+                issues.append(f"critical failures {critical_failures} > 0")
+            if issues:
+                print(f"ERROR: {agent} not eligible for trusted — {'; '.join(issues)}. "
+                      f"Use --force to override.", file=sys.stderr)
+                return 2
+
+    record["status"] = next_status
     record["history"].append({
         "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "kind": "status_change",
         "id": "promotion",
-        "outcome": "probationary→active",
+        "outcome": f"{current}→{next_status}",
     })
     record["history"] = record["history"][-200:]
     save(agent, record)
-    print(f"✓ {agent}: promoted to active.")
+    print(f"✓ {agent}: promoted to {next_status}.")
     return 0
 
 
@@ -345,6 +409,32 @@ def cmd_retire(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_deprecate(args: argparse.Namespace) -> int:
+    agent = args.agent
+    record = load(agent)
+    current = record.get("status", _default_status_for(agent))
+    if current in ("retired", "deprecated"):
+        print(f"ℹ {agent}: already {current}, no change.")
+        return 0
+    if current == "candidate":
+        print(f"ERROR: {agent} is a candidate — retire directly instead of deprecating.", file=sys.stderr)
+        return 2
+    record["status"] = "deprecated"
+    record["history"].append({
+        "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "kind": "status_change",
+        "id": "deprecation",
+        "outcome": f"{current}→deprecated",
+    })
+    record["history"] = record["history"][-200:]
+    if args.reason:
+        note_line = f"[{datetime.datetime.now(datetime.timezone.utc).date().isoformat()}] deprecated: {args.reason}"
+        record["notes"] = (record.get("notes") or "") + ("\n" if record.get("notes") else "") + note_line
+    save(agent, record)
+    print(f"✓ {agent}: deprecated. Will be retired after confirmation.")
+    return 0
+
+
 def cmd_standings(args: argparse.Namespace) -> int:
     # Load all ledger files.
     records = []
@@ -369,23 +459,23 @@ def cmd_standings(args: argparse.Namespace) -> int:
         if "status" not in r:
             r["status"] = _default_status_for(r["agent"])
 
-    # Sort by trust weight descending, retired agents last.
+    # Sort by trust weight descending, deprecated/retired agents last.
     def _sort_key(r: dict) -> tuple:
-        retired_penalty = 1 if r.get("status") == "retired" else 0
-        return (retired_penalty, -r["trust_weight"], r["agent"])
+        status_penalty = {"retired": 2, "deprecated": 1}.get(r.get("status", "active"), 0)
+        return (status_penalty, -r["trust_weight"], r["agent"])
     records.sort(key=_sort_key)
 
-    print(f"{'Agent':<30} {'Status':<14} {'Trust':<8} {'Accuracy':<10} {'Findings':<12} {'Challenges':<12}")
-    print("-" * 86)
+    print(f"{'Agent':<30} {'Status':<16} {'Trust':<8} {'Accuracy':<10} {'Findings':<12} {'Challenges':<12}")
+    print("-" * 88)
     for r in records:
         findings_str = f"{r['findings']['confirmed']}C/{r['findings']['partially_confirmed']}P/{r['findings']['refuted']}R"
         challenges_str = f"{r['challenges']['survived']}S/{r['challenges']['lost']}L"
         status = r.get("status", "active")
-        print(f"{r['agent']:<30} {status:<14} {r['trust_weight']:<8} {r['accuracy_score']:<10} {findings_str:<12} {challenges_str:<12}")
+        print(f"{r['agent']:<30} {status:<16} {r['trust_weight']:<8} {r['accuracy_score']:<10} {findings_str:<12} {challenges_str:<12}")
 
     print()
     print("Legend: C=Confirmed, P=Partially confirmed, R=Refuted, S=Survived challenge, L=Lost challenge")
-    print("Status: probationary (new hire, on trial) | active (validated) | retired (sunset)")
+    print("Status: candidate (new, unvalidated) | probationary (on trial) | active (validated) | trusted (high-performer) | deprecated (flagged for sunset) | retired (sunset)")
     print("Trust weight: Bayesian-blended accuracy (0-1). New agents start at 0.9.")
     return 0
 
@@ -403,7 +493,7 @@ def main() -> int:
 
     p = sub.add_parser("challenge", help="Record a challenger outcome")
     p.add_argument("--agent", required=True)
-    p.add_argument("--outcome", required=True, choices=["SURVIVED", "LOST"])
+    p.add_argument("--outcome", required=True, choices=["SURVIVED", "MODIFIED", "OVERTURNED", "LOST"])
     p.add_argument("--challenge-id", help="Optional challenge identifier")
     p.set_defaults(func=cmd_challenge)
 
@@ -418,7 +508,7 @@ def main() -> int:
     p = sub.add_parser("standings", help="Show all agents ranked by trust")
     p.set_defaults(func=cmd_standings)
 
-    p = sub.add_parser("promote", help="Promote a probationary agent to active (requires refutation rate <25% across ≥5 verdicts, or --force)")
+    p = sub.add_parser("promote", help="Promote an agent one step: candidate→probationary→active→trusted (eligibility checked per step, or --force)")
     p.add_argument("--agent", required=True)
     p.add_argument("--force", action="store_true", help="Skip eligibility gate")
     p.set_defaults(func=cmd_promote)
@@ -427,6 +517,11 @@ def main() -> int:
     p.add_argument("--agent", required=True)
     p.add_argument("--reason", help="Optional reason, appended to agent notes")
     p.set_defaults(func=cmd_retire)
+
+    p = sub.add_parser("deprecate", help="Deprecate an agent (flags for sunset — no new dispatches)")
+    p.add_argument("--agent", required=True)
+    p.add_argument("--reason", help="Optional reason for deprecation")
+    p.set_defaults(func=cmd_deprecate)
 
     args = parser.parse_args()
     return args.func(args)

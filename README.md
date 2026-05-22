@@ -1,4 +1,4 @@
-# Claude Code 31-Agent Team
+# Claude Code 32-Agent Team
 
 > A production-grade multi-agent engineering team for Claude Code, with hook-enforced protocol, adversarial review, Bayesian trust calibration, dynamic specialist hiring, an optional parallel cognitive layer, and a self-improving meta-cognitive loop.
 
@@ -6,16 +6,22 @@
 
 **Architecture diagrams:** [`ARCHITECTURE_DIAGRAMS.md`](ARCHITECTURE_DIAGRAMS.md) (editable Mermaid source + ASCII fallbacks + PNG export instructions)
 
-This is not a framework. It's an **operating system layer on top of Claude Code** — 31 domain-expert agents coordinated through a syscall protocol (NEXUS), governed by runtime hooks, validated by a 341-assertion contract test suite, calibrated by a per-agent trust ledger, and equipped with a gated hiring pipeline for growing the roster as coverage gaps appear.
+This is not a framework. It's an **operating system layer on top of Claude Code** — 32 domain-expert agents coordinated through a syscall protocol (NEXUS), governed by runtime hooks, validated by a 352-assertion contract test suite, calibrated by a per-agent trust ledger, and equipped with a gated hiring pipeline for growing the roster as coverage gaps appear.
 
 **What it actually is** (verified against itself):
-- 31 agent definitions in `agents/` (each 20–56 KB of role-specific instructions, spanning Go / Python / TypeScript / Elixir / BEAM / K8s / GCP / security / QA / AI platform / external BEAM retainer / recruiting + team-evolution roles)
+- 32 agent definitions in `agents/` (each 20–56 KB of role-specific instructions, spanning Go / Python / TypeScript / Elixir / BEAM / K8s / GCP / security / QA / AI platform / external BEAM retainer / recruiting + team-evolution roles)
 - Runtime hooks that enforce closing-protocol invariants, persist signals, auto-log syscalls, auto-record trust verdicts, and gate post-hire registration
 - A signal bus (`agent-memory/signal-bus/`) that carries memory/evolution/cross-agent flags between sessions
 - A trust ledger (`agent-memory/trust-ledger/`) that Bayesian-blends per-agent accuracy from validator verdicts
 - A documented NEXUS syscall protocol for privileged operations (SPAWN, SCALE, RELOAD, MCP, ASK, CRON, INTUIT, etc.)
 - A **Dynamic Domain Expert Acquisition** pipeline (`talent-scout` + `recruiter`) — the team detects its own coverage gaps (5-signal confidence score + session-sentinel co-sign) and hires new specialist agents through 8 gated phases (research → synthesis → validation → challenger review → atomic registration → post-hire verify → probation → promotion)
-- An optional **Shadow Mind** cognitive layer (`intuition-oracle` + Observer + Pattern Computer + Speculator + Dreamer + Pattern Library) that offers probabilistic pattern-based guidance via `[NEXUS:INTUIT]`, **delete-to-disable** without affecting the conscious team
+- An optional **Shadow Mind** cognitive layer (`intuition-oracle` + Observer + Pattern Computer + Speculator + Dreamer + Pattern Library) that offers probabilistic pattern-based guidance via `[NEXUS:INTUIT]`, with **topic cluster pattern retrieval** ("have we seen this before? what fixed it?"), **delete-to-disable** without affecting the conscious team
+- **Execution modes** (FAST / BALANCED / FULL_POWER) for speed/cost/quality trade-offs per task
+- **6-state agent lifecycle** (candidate → probationary → active → trusted → deprecated → retired) with trust-weighted routing preference
+- **Quality gates by task type** — different workflows for code changes vs security findings vs architecture decisions vs incidents
+- **Conflict arbitration protocol** — structured evidence-based dispute resolution when agents disagree
+- **nexus-doctor.sh** — diagnostic health check for framework integrity (agents, hooks, dependencies, Shadow Mind status)
+- **Planning cache (playbooks)** — reusable task workflows that make repeated task types faster over time
 - Contract tests (`tests/agents/`) that run on every commit and gate prompt evolution
 
 ---
@@ -26,7 +32,7 @@ Most agentic frameworks try to enforce discipline **inside the agent loop** (via
 
 The team's value proposition splits cleanly:
 - **Methodology layer** (NEXUS + signal bus + validator gate + challenger gate + trust ledger + Pattern F + hiring pipeline + Shadow Mind): *domain-agnostic*, transfers to any engineering work
-- **Expertise layer** (31 agent prompts covering Go / Python / TypeScript / Elixir / BEAM / K8s / GCP / security / QA / AI platform / etc.): extend or customize for your stack — or let the hiring pipeline add specialists as gaps appear
+- **Expertise layer** (32 agent prompts covering Go / Python / TypeScript / Elixir / BEAM / K8s / GCP / security / QA / AI platform / etc.): extend or customize for your stack — or let the hiring pipeline add specialists as gaps appear
 
 ---
 
@@ -44,7 +50,7 @@ cp    claude-nexus-hyper-agent-team/CLAUDE.md        YOUR_PROJECT/CLAUDE.md
 
 # 2. Verify installation
 python3 YOUR_PROJECT/.claude/tests/agents/run_contract_tests.py
-# Expected: 341 passed, 0 failed
+# Expected: 352 passed, 0 failed
 
 # 3. Optional — install the git pre-commit hook for agent contract tests
 ln -s ../../.claude/hooks/pre-commit-agent-contracts.sh YOUR_PROJECT/.git/hooks/pre-commit
@@ -64,7 +70,7 @@ ln -s ../../.claude/hooks/pre-commit-agent-contracts.sh YOUR_PROJECT/.git/hooks/
 
 ### Customizing the roster
 
-The 31 agents cover: Go, Python, TypeScript, React/Next.js, Elixir, BEAM/OTP, Kubernetes, GCP, Terraform, PostgreSQL, Redis, Firestore, GraphQL, security, observability, testing, AI/ML architecture, benchmarking, and external BEAM retainer advisory. **If you work on a different stack** (e.g., Rust, embedded, kernel, ML training, AWS-native), you have two paths:
+The 32 agents cover: Go, Python, TypeScript, React/Next.js, Elixir, BEAM/OTP, Kubernetes, GCP, Terraform, PostgreSQL, Redis, Firestore, GraphQL, security, observability, testing, AI/ML architecture, benchmarking, and external BEAM retainer advisory. **If you work on a different stack** (e.g., Rust, embedded, kernel, ML training, AWS-native), you have two paths:
 
 **Path A — Let the team hire for you (recommended):** Dispatch `talent-scout` for a coverage audit; if it detects a recurring gap with ≥0.70 confidence AND `session-sentinel` co-signs, dispatch `recruiter` to run the 8-phase pipeline. `meta-agent` performs atomic registration (agent file + contract-test list + hook regexes + trust-ledger default + memory scaffold) in a single commit, gated by `post-hire-verify.sh`.
 
@@ -86,7 +92,7 @@ TIER 1 — BUILDERS      elite-engineer, ai-platform-architect, frontend-platfor
                         beam-architect, elixir-engineer, go-hybrid-engineer
 TIER 2 — GUARDIANS     go-expert, python-expert, typescript-expert, deep-qa, deep-reviewer,
                         infra-expert, database-expert, observability-expert, test-engineer,
-                        api-expert, beam-sre
+                        api-expert, beam-sre, code-sentinel
 TIER 3 — STRATEGISTS   deep-planner, orchestrator
 TIER 4 — INTELLIGENCE  memory-coordinator, cluster-awareness, benchmark-agent,
                         erlang-solutions-consultant, talent-scout, intuition-oracle
@@ -122,11 +128,11 @@ The team can detect its own coverage gaps and hire new specialist agents. When `
 
 ### The Shadow Mind (parallel cognitive layer — production-validated, disable-able)
 
-A non-invasive parallel cognitive layer that runs alongside the conscious team. Six components: Observer daemon (`shadow-observer.sh` — tails signal bus), Pattern Computer (`shadow-pattern-computer.py` — derives n-grams + co-occurrences + temporal patterns), Pattern Library (read-only data), Speculator (counterfactual variants), Dreamer (insight candidates during idle windows), and `intuition-oracle` agent (the queryable surface). Agents can OPTIONALLY consult it via `[NEXUS:INTUIT] <question>` and receive an `INTUIT_RESPONSE v1` envelope with a confidence score and evidence IDs.
+A non-invasive parallel cognitive layer that runs alongside the conscious team. Six components: Observer daemon (`shadow-observer.sh` — tails signal bus with resolution tracking), Pattern Computer (`shadow-pattern-computer.py` — derives n-grams + co-occurrences + temporal patterns + **topic clusters** with fix history), Pattern Library (read-only data), Speculator (counterfactual variants), Dreamer (insight candidates during idle windows), and `intuition-oracle` agent (the queryable surface with 6 intent types including **PATTERN_RETRIEVAL** — "have we seen this failure before? what fixed it?"). Agents can OPTIONALLY consult it via `[NEXUS:INTUIT] <question>` and receive an `INTUIT_RESPONSE v1` envelope with a confidence score and evidence IDs.
 
 **Production telemetry (2026-04-21):** Observer captured 7,228 observations and stays fresh (< 2h heartbeat). Pattern Computer derived 154 transitions across 35 sessions. Oracle queries return structured MEDIUM/HIGH confidence on in-domain questions and correctly return `INSUFFICIENT_DATA` when the Pattern Library has not yet seen enough of a domain. Three real oracle consultations during 2026-04 sessions produced actionable findings that shaped challenger-gate scope.
 
-**Delete `agent-memory/shadow-mind/` and the layer is gone** — no conscious-layer agent is required to consult it, and all 341/341 contract tests continue to pass either way.
+**Delete `agent-memory/shadow-mind/` and the layer is gone** — no conscious-layer agent is required to consult it, and all 352/352 contract tests continue to pass either way.
 
 ---
 
@@ -159,7 +165,7 @@ claude-nexus-hyper-agent-team/
 ├── CLAUDE.md                         # Team operating protocol + project context stub
 ├── README.md                         # This file
 ├── LICENSE
-├── agents/                           # 31 agent definitions (YAML frontmatter + markdown body)
+├── agents/                           # 32 agent definitions (YAML frontmatter + markdown body)
 ├── hooks/                            # Runtime hooks + Shadow Mind scripts
 │   ├── verify-agent-protocol.sh      # SubagentStop — blocks bad closing protocols
 │   ├── verify-signal-bus-persisted.sh # SubagentStop — warns on signal persistence drift
@@ -171,16 +177,21 @@ claude-nexus-hyper-agent-team/
 │   ├── shadow-pattern-computer.py    # Shadow Mind — Pattern Computer (optional, cron)
 │   ├── shadow-speculator.py          # Shadow Mind — counterfactual variants (optional, cron)
 │   └── shadow-dreamer.py             # Shadow Mind — insight proposer (optional, daily cron)
+│   └── nexus-doctor.sh               # Framework health check diagnostic
 ├── tests/agents/
-│   └── run_contract_tests.py         # 11 contracts × 31 agents = 341 assertions
+│   └── run_contract_tests.py         # 11 contracts × 32 agents = 352 assertions
 ├── docs/team/                        # Team documentation (overview, cheatsheet, runbook, scenarios, AGENT_TEMPLATE)
 ├── agent-memory/                     # Per-agent memory + signal bus + trust ledger + Shadow Mind
 │   ├── <agent-name>/MEMORY.md        # Empty scaffold per agent
 │   ├── signal-bus/                   # Header-only files, drained to Pattern F baseline
 │   ├── shadow-mind/                  # Shadow Mind data (optional, delete-to-disable)
 │   └── trust-ledger/
-│       ├── ledger.py                 # CLI: verdict, challenge, show, weight, standings, promote
+│       ├── ledger.py                 # CLI: verdict, challenge, show, weight, standings, promote, deprecate
 │       └── README.md                 # Schema + usage
+├── agent-memory/routing/
+│   └── task-classifier.json          # Task type → execution mode dispatch matrix
+├── agent-memory/playbooks/
+│   └── README.md                     # Reusable task workflow protocol
 ├── settings.json                     # Claude Code hook wiring (required)
 └── settings.local.json               # Per-user overrides (meant to be .gitignored)
 ```
@@ -210,7 +221,7 @@ MIT — see `LICENSE` file.
 | Hiring pipeline | Ran end-to-end on 2026-04-19 for `elixir-kernel-engineer`; probation dispatches pending. |
 | Shadow Mind | Observer 7,228 observations captured (heartbeat < 2h). Pattern Computer 154 transitions across 35 sessions. Oracle returning structured MEDIUM/HIGH confidence on in-domain questions; correctly `INSUFFICIENT_DATA` on under-observed domains. |
 | Signal bus | 506 entries (~100/week): 138 memory-handoffs, 126 NEXUS syscalls, 59 cross-agent flags, 35 evolution signals. |
-| Contract tests | 341/341 passing on every commit. |
+| Contract tests | 352/352 passing on every commit. |
 
 ## Built by
 
@@ -220,7 +231,7 @@ MIT — see `LICENSE` file.
 | <img src="https://media.licdn.com/dms/image/v2/D4D03AQF3olDQ6AkP5Q/profile-displayphoto-crop_800_800/B4DZo0XgfPH0AM-/0/1761815172205?e=1778716800&v=beta&t=SYIKLllXxmcWteKD64GKNpWxSdKk_l6xAFjQPXIDlYQ" width="48" /> | **Khaled El Azab** | Chief of AI Strategies & Co-founder | [LinkedIn](https://www.linkedin.com/in/ikhaled-elazab/) / [GitHub](https://github.com/shw2ypro) |
 | <img src="https://media.licdn.com/dms/image/v2/D4D03AQHZ0YySq3I_Xg/profile-displayphoto-crop_800_800/B4DZyU__W6IYAI-/0/1772026331936?e=1778716800&v=beta&t=qbDMWBFxEg7_sPBZj5O-_Aw5oyeMgoEy7IOEnoYEVNg" width="48" /> | **Hossam Hegazy** | Chief of Engineering & Co-founder | [LinkedIn](https://www.linkedin.com/in/hossam-hegazy-269745a4/) |
 
-Built while building [**ASIFlow**](https://asiflow.ai) — a sovereign AI agent platform for regulated industries. The methodology generalizes to any engineering domain; the 31 agent domain specializations reflect the original platform's stack, and `talent-scout` + `recruiter` exist so the roster can grow to match yours.
+Built while building [**ASIFlow**](https://asiflow.ai) — a sovereign AI agent platform for regulated industries. The methodology generalizes to any engineering domain; the 32 agent domain specializations reflect the original platform's stack, and `talent-scout` + `recruiter` exist so the roster can grow to match yours.
 
 ## Contributing
 
@@ -244,11 +255,11 @@ Built while building [**ASIFlow**](https://asiflow.ai) — a sovereign AI agent 
 
 ### From this team's own scope
 
-4. **Domain coverage is web/cloud/AI-platform/BEAM-focused.** The 31 agents cover Go, Python, TypeScript, Elixir, BEAM/OTP, Kubernetes, GCP, GraphQL, PostgreSQL, Redis, Firestore, and AI/ML platform work. For embedded firmware, OS kernels, compilers, DSP, crypto primitives, AWS-native, or formal verification, you'll want to add domain-specialist agents — the harness supports it via the hiring pipeline (see `Customizing the roster` above); the existing prompts don't cover these domains.
+4. **Domain coverage is web/cloud/AI-platform/BEAM-focused.** The 32 agents cover Go, Python, TypeScript, Elixir, BEAM/OTP, Kubernetes, GCP, GraphQL, PostgreSQL, Redis, Firestore, and AI/ML platform work. For embedded firmware, OS kernels, compilers, DSP, crypto primitives, AWS-native, or formal verification, you'll want to add domain-specialist agents — the harness supports it via the hiring pipeline (see `Customizing the roster` above); the existing prompts don't cover these domains.
 
 5. **N=1 by codebase, N=15 by domain — with per-agent depth transparency.** The team was developed and refined against a single production codebase over 5 weeks (2026-03-18 through 2026-04-21). Multi-codebase, multi-language, multi-team behavior is unproven. However, within that single codebase the team has exercised ~15 technical domains at substantial depth; the real per-agent memory distribution is in `agent-memory/<agent>/` and the trust ledger at `agent-memory/trust-ledger/` shows where validation is deep vs. thin. Deep: `go-expert` (132 KB, 16 verdicts, trust 0.952), `infra-expert` (240 KB), `api-expert` (524 KB), `database-expert` (260 KB), `cluster-awareness` (168 KB). Thin: `python-expert` (12 KB, 1 file). Expect sharper edges on thin-data domains until your sessions populate those agents' records.
 
-6. **Opus-heavy — 28 of 31 agents default to opus.** Not affordable for all plans. Three agents (`session-sentinel`, `evidence-validator`, `challenger`) default to sonnet because they're structured-reasoning roles where sonnet is sufficient. Language experts and `deep-qa`/`deep-reviewer` should NOT be downgraded without explicit cost/quality trade-off acceptance — their false-negative rate on sonnet is expensive.
+6. **Opus-heavy — 28 of 32 agents default to opus.** Not affordable for all plans. Three agents (`session-sentinel`, `evidence-validator`, `challenger`) default to sonnet because they're structured-reasoning roles where sonnet is sufficient. Language experts and `deep-qa`/`deep-reviewer` should NOT be downgraded without explicit cost/quality trade-off acceptance — their false-negative rate on sonnet is expensive.
 
 7. **Trust ledger starts uncalibrated.** Every agent begins at the 0.9 Bayesian prior with zero verdicts. Real calibration emerges as `evidence-validator` issues verdicts during actual sessions. Expect 5–10 sessions before per-agent trust weights carry meaningful signal. Until then, CTO synthesis weights all agents equally.
 
@@ -257,3 +268,7 @@ Built while building [**ASIFlow**](https://asiflow.ai) — a sovereign AI agent 
 9. **Experimental-feature tracking burden.** If you rely on team-mode NEXUS, you're coupled to Anthropic's evolution of the agent-teams feature. Breaking changes to `TeamCreate` or `SendMessage` semantics will break team-mode syscalls. Mitigation: pin a Claude Code version, test upgrades in a throwaway project before rolling out, and keep one-off mode paths working as a fallback.
 
 10. **Shadow Mind requires ongoing data curation.** If you enable the Shadow Mind, Observer must keep tailing the signal bus (`heartbeat < 24h`) or the oracle returns `SHADOW_MIND_STALE`. The Pattern Computer / Speculator / Dreamer crons should be scheduled via `CronCreate` (see `docs/team/TEAM_RUNBOOK.md` for activation commands). If you don't enable it, the team operates identically without it — the Shadow Mind is strictly additive.
+
+---
+
+*Last updated: 2026-05-22. Team v3.2 — 32 agents, execution modes, 6-state lifecycle, quality gates by task type, conflict arbitration, topic clusters, nexus-doctor, playbooks.*

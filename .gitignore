@@ -1,0 +1,30 @@
+# User-specific settings (not part of the distribution)
+settings.local.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Trust ledger data (per-user, generated at runtime)
+agent-memory/trust-ledger/*.json
+
+# Shadow Mind observations (generated at runtime, can grow large)
+agent-memory/shadow-mind/observations/
+agent-memory/shadow-mind/speculations/
+agent-memory/shadow-mind/dreams/
+
+# Shadow Mind heartbeats (runtime state)
+agent-memory/shadow-mind/heartbeats/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Logs
+*.log

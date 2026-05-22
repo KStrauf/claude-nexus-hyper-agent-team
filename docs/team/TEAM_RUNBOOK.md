@@ -1,6 +1,6 @@
 # Agent Team — Operational Runbook
 
-> Day-to-day playbook for operating the 31-agent team (29 specialists + 2 verifiers). Read this before every session until you've internalized the patterns.
+> Day-to-day playbook for operating the 32-agent team (30 specialists + 2 verifiers). Read this before every session until you've internalized the patterns.
 
 ---
 
@@ -8,10 +8,12 @@
 
 Before starting any significant work session:
 
+- [ ] **Run NEXUS Doctor:** `bash hooks/nexus-doctor.sh --skip-tests` (fast) or `bash hooks/nexus-doctor.sh` (full)
 - [ ] Check `git status` — is the working tree clean? If not, understand what's uncommitted.
 - [ ] Check recent commits: `git log --oneline -5` — know what shipped recently.
 - [ ] Check signal bus for pending items: `ls .claude/agent-memory/signal-bus/`
 - [ ] Verify `.claude/settings.json` has `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+- [ ] **Verify Shadow Mind activation:** Observer daemon running (heartbeat < 24h), Pattern Computer refreshed
 - [ ] If this is a fresh session, consider dispatching `session-sentinel` first for a pre-brief
 
 ---
@@ -113,7 +115,7 @@ CTO → SendMessage({to: "elite-engineer", message: "Implement X..."})
 
 **Cause:** Agent prompt lacks Team Coordination Discipline section OR the agent is confused about which mode it's in.
 
-**Fix:** All 31 agent prompts should have this section (validated by the contract test suite). If missing, run `python3 .claude/tests/agents/run_contract_tests.py --agent <name>` to identify the gap. To recover mid-session, SendMessage to the agent reminding them to use SendMessage.
+**Fix:** All 32 agent prompts should have this section (validated by the contract test suite). If missing, run `python3 .claude/tests/agents/run_contract_tests.py --agent <name>` to identify the gap. To recover mid-session, SendMessage to the agent reminding them to use SendMessage.
 
 ### Failure 4: Agent Returns "Agent tool not available"
 
@@ -277,7 +279,7 @@ Skipping gates = skipping the value of having the team.
 **A:** Signal bus is short-term, cleared by Pattern F. Memory (`.claude/agent-memory/<agent>/`) is permanent. Signals distill into memory.
 
 ### Q: Do I need to enable the Shadow Mind?
-**A:** No. The Shadow Mind is optional. The 31-agent team operates fully without it. Enable it if you want probabilistic pattern-based guidance via `[NEXUS:INTUIT]`; skip it if you don't.
+**A:** No. The Shadow Mind is optional. The 32-agent team operates fully without it. Enable it if you want probabilistic pattern-based guidance via `[NEXUS:INTUIT]`; skip it if you don't.
 
 ### Q: How do I hire a new specialist agent?
 **A:** You don't hire directly — let the pipeline do it. Dispatch `talent-scout` for an audit; if it produces a requisition with confidence ≥0.70 AND session-sentinel co-signs, dispatch `recruiter` to run the 8-phase pipeline. `meta-agent` performs the atomic registration and `post-hire-verify.sh` is the final gate.
@@ -347,7 +349,7 @@ CronDelete <dreamer-cron-id>
 # Full Shadow Mind removal (data + scripts)
 rm -rf .claude/agent-memory/shadow-mind
 rm .claude/hooks/shadow-*.{sh,py}
-# Team continues operating — 341/341 contract tests still pass
+# Team continues operating — 352/352 contract tests still pass
 ```
 
 ### Failure Modes
@@ -369,7 +371,37 @@ The Shadow Mind's design guarantees:
 - No signal bus entry is modified by the Shadow Mind (Observer only reads)
 - meta-agent retains single-writer authority over `.claude/agents/*.md`
 - If the Shadow Mind is disabled mid-session, agents continue operating (NEXUS:INTUIT returns ERR; agents proceed without)
-- All 341/341 contract tests pass whether Shadow Mind is enabled or disabled
+- All 352/352 contract tests pass whether Shadow Mind is enabled or disabled
+
+---
+
+## Execution Modes — Operational Guide
+
+Select the right mode BEFORE dispatching. Default: BALANCED.
+
+| Mode | Max Dispatches | CTO Required? | Evidence Gates |
+|------|----------------|---------------|----------------|
+| **FAST** | 3 | No | evidence-validator on HIGH only |
+| **BALANCED** | 6 | Multi-domain only | evidence-validator on HIGH + challenger on recommendations |
+| **FULL_POWER** | unlimited | Yes (mandatory) | ALL gates mandatory |
+
+**Mode triggers:** "fast" / "quick" / "just do X" → FAST. "full power" / "gold prompt" → FULL_POWER. Everything else → BALANCED.
+
+---
+
+## Agent Lifecycle States
+
+Agents follow a 6-state lifecycle: `candidate → probationary → active → trusted → deprecated → retired`
+
+| Transition | Trigger | Who Promotes |
+|-----------|---------|-------------|
+| candidate → probationary | Contract tests pass + challenger approval | recruiter signals meta-agent |
+| probationary → active | 5 dispatches, refutation < 25%, trust ≥ 0.5 | `ledger.py promote` |
+| active → trusted | trust > 0.8, ≥3 successes, 0 critical failures | `ledger.py promote` |
+| active → deprecated | meta-agent flags for sunset | `ledger.py deprecate` |
+| deprecated → retired | Explicit retire | `ledger.py promote --force` to retired |
+
+**Routing preference:** When multiple agents can handle a task, prefer `trusted (5) > active (4) > probationary (3) > candidate (2)`. Never dispatch deprecated agents for new work.
 
 ---
 
@@ -382,7 +414,7 @@ When a new specialist is needed (e.g., AWS/CDK work keeps getting misrouted to `
 3. Dispatch `recruiter` with the signed requisition — it runs the 8-phase pipeline
 4. Phase 6: `recruiter` hands the validated draft to `meta-agent` for atomic registration
 5. Phase 7: `post-hire-verify.sh` runs automatically; must return `{"status":"verified"}` or registration fails
-6. Phase 8: new agent enters `probationary` status in the trust ledger; promotion happens after ≥5 verdicts with refutation rate <25%
+6. Phase 8: new agent enters `candidate` status, promoted to `probationary` after post-hire-verify, then `active` after ≥5 dispatches with refutation rate <25%, eventually `trusted` after sustained excellence
 
 **Never edit `.claude/agents/` directly to add a new agent.** The pipeline gates exist for a reason — bypassing them skips contract-test validation, challenger review, and atomic registration. If a new agent is urgently needed, run the pipeline in rapid mode (deep-planner can compress the phases) but don't skip them.
 
@@ -398,4 +430,4 @@ When a new specialist is needed (e.g., AWS/CDK work keeps getting misrouted to `
 
 ---
 
-*Last updated: 2026-04-18 — v3.0 with 31 agents, hiring pipeline operational notes, and Shadow Mind operational procedures.*
+*Last updated: 2026-05-22 — v3.2 with 32 agents, execution modes, 6-state lifecycle, quality gates, nexus-doctor, topic clusters.*

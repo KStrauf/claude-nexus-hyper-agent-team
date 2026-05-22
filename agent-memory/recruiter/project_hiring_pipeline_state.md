@@ -78,7 +78,7 @@ distribution_specificity_note: |
   This hire was executed in the parent production platform this generalized
   distribution is derived from. The hired agent's implementation is tightly
   coupled to that platform's BEAM Plane 1 topology and is NOT shipped in the
-  generic 31-agent distribution. The requisition, probation YAML, trust-ledger
+  generic 32-agent distribution. The requisition, probation YAML, trust-ledger
   entry, and challenger verdict are preserved as proof-of-pipeline-execution
   artifacts. Future hires executed by adopters of this distribution are
   recorded in-place in the adopter's own repo.
